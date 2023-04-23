@@ -48,12 +48,11 @@ const Matrix3 = class {
   }
 
   set(A, m12, m13, m21, m22, m23, m31, m32, m33) {
-    if (m12 === undefined) {
+    if (A === undefined) {
+      return this.set(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    } else if (m12 === undefined) {
       const { m11, m12, m13, m21, m22, m23, m31, m32, m33 } = A;
-      this.m11 = m11; this.m12 = m12; this.m13 = m13;
-      this.m21 = m21; this.m22 = m22; this.m23 = m23;
-      this.m31 = m31; this.m32 = m32; this.m33 = m33;
-      return this;
+      return this.set(m11, m12, m13, m21, m22, m23, m31, m32, m33);
     } else {
       const m11 = A;
       this.m11 = m11; this.m12 = m12; this.m13 = m13;
@@ -159,6 +158,8 @@ const FrameRate = class {
 
 const canvasObject = {
   image: undefined,
+  transform: new Matrix3().setIdentity(),
+
   mouseDown: undefined,
   rubberBand: undefined,
 };
@@ -213,12 +214,26 @@ const updateRubberBand = ev => {
   rubberBand.h = Math.abs(y - sy);
 };
 
+const resetTransform = () => {
+  const CW = document.documentElement.clientWidth;
+  const CH = document.documentElement.clientHeight;
+
+  const W = canvasObject.image.naturalWidth;
+  const H = canvasObject.image.naturalHeight;
+  const s = Math.max(W / CW, H / CH, 1);
+  const x = (CW - W * s) * 0.5;
+  const y = (CH - H * s) * 0.5;
+  console.log(W, H, s, x, y);
+
+  canvasObject.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
+};
+
 const updateGui = () => {
   gui.controllersRecursive().forEach(controller => controller.updateDisplay());
 };
 
 const changeTool = tool => {
-  document.querySelector(".dtk-canvas").style.cursor = toolCursors[tool];
+  // document.querySelector(".dtk-canvas").style.cursor = toolCursors[tool];
   canvasObject.mouseDown = undefined;
 };
 
@@ -238,6 +253,7 @@ const initialize = () => {
         const file = ev.dataTransfer.files.item(i);
         try {
           canvasObject.image = await blobToImage(file);
+          resetTransform();
         } catch (e) {
           console.error("cannot blobToImage", e);
         }
@@ -323,15 +339,21 @@ const draw = () => {
   context.scale(devicePixelRatio, devicePixelRatio);
   context.clearRect(0, 0, W, H);
 
-  const image = canvasObject.image;
-  if (image) {
-    context.drawImage(image, 0, 0);
-  }
-
   const rubberBand = canvasObject.rubberBand;
   if (rubberBand) {
     const { x, y, w, h } = rubberBand;
     context.strokeRect(x, y, w, h);
+  }
+
+  const {
+    m11, m12, m13: dx,
+    m21, m22, m23: dy,
+  } = canvasObject.transform;
+  context.transform(m11, m21, m21, m22, dx, dy);
+
+  const image = canvasObject.image;
+  if (image) {
+    context.drawImage(image, 0, 0);
   }
 };
 
