@@ -220,7 +220,7 @@ const resetTransform = () => {
 
   const W = canvasObject.image.naturalWidth;
   const H = canvasObject.image.naturalHeight;
-  const s = Math.max(W / CW, H / CH, 1);
+  const s = Math.min(CW / W, CH / H, 1);
   const x = (CW - W * s) * 0.5;
   const y = (CH - H * s) * 0.5;
   console.log(W, H, s, x, y);
