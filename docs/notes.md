@@ -1,3 +1,6 @@
+- [x] Markdownテーブル
+  - dromozoa-utf8をインストール
+  - Vimで選択して、選択結果に`!dromozoa-markdown-table`する
 - [ ] 画像の選択だけを行うツール
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
@@ -8,3 +11,8 @@
 - [ ] 画像最適化
 - [ ] フォントの作成
 - [ ] フォントの解析
+- [x] Unicodeのつくりなおし
+- [x] @dromozoa.comのメール
+  - honoka,nozomi経由で@me.comに転送
+- [ ] VimのJavaScriptシンタックスの修正
+  - 引数の先頭の正規表現に色がつかない

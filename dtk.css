@@ -16,3 +16,28 @@
  * You should have received a copy of the GNU General Public License
  * along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
  */
+
+:root {
+  --dtk-background-color: #999;
+}
+
+body.dtk {
+  background-color: var(--dtk-background-color);
+  margin: 0;
+}
+
+.dtk-root {
+  position: absolute;
+  background-color: var(--dtk-background-color);
+}
+
+.dtk-canvas {
+  display: block;
+  position: absolute;
+}
+
+.dtk-gui {
+  position: fixed;
+  right: 0;
+  top: 0;
+}
