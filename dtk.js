@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
 
+import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm';
+
 const numberToCssRegex = /\.?0*$/;
 const numberToCss = (v, unit = "px") => {
   if (Math.abs(v) < 0.00005) {
@@ -22,6 +24,14 @@ const numberToCss = (v, unit = "px") => {
   } else {
     return v.toFixed(4).replace(numberToCssRegex, "") + unit;
   }
+};
+
+let gui;
+
+const initialize = () => {
+  gui = new GUI({
+    container: document.querySelector(".dtk-gui"),
+  });
 };
 
 const onResize = () => {
@@ -32,5 +42,7 @@ const onResize = () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   onResize();
+  initialize();
+
   addEventListener("resize", onResize);
 });
