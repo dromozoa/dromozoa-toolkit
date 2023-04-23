@@ -1,5 +1,6 @@
-- [ ] Markdownテーブル
+- [x] Markdownテーブル
   - dromozoa-utf8をインストール
+  - Vimで選択して、選択結果に`!dromozoa-markdown-table`する
 - [ ] 画像の選択だけを行うツール
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決

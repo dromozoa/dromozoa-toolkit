@@ -27,8 +27,4 @@ const onResize = () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   onResize();
-
-
-
-
 });
