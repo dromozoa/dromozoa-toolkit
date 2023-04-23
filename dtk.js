@@ -83,6 +83,8 @@ const FrameRate = class {
 
 //-------------------------------------------------------------------------
 
+const images = [];
+
 const guiObject = {
   fps: 0,
   fpsMin: 0,
@@ -93,14 +95,43 @@ let gui;
 
 //-------------------------------------------------------------------------
 
-const initialize = () => {
-  const node = document.querySelector(".dtk-root");
-  node.addEventListener("dragover", ev => ev.preventDefault());
-  node.addEventListener("drop", ev => {
-    ev.preventDefault();
+const blobToImage = blob => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(blob);
 
-    // ファイル処理
+  const image = new Image();
+  image.addEventListener("load", () => {
+    URL.revokeObjectURL(url);
+    resolve(image);
   });
+  image.addEventListener("error", ev => {
+    URL.revokeObjectURL(url);
+    reject(ev);
+  });
+
+  image.src = url;
+});
+
+const initialize = () => {
+  const rootNode = document.querySelector(".dtk-root");
+  rootNode.addEventListener("dragover", ev => ev.preventDefault());
+  rootNode.addEventListener("drop", async ev => {
+    ev.preventDefault();
+    if (ev.dataTransfer && ev.dataTransfer.files) {
+      for (let i = 0; i < ev.dataTransfer.files.length; ++i) {
+        const file = ev.dataTransfer.files.item(i);
+        try {
+          const image = await blobToImage(file);
+          images.push(image);
+        } catch (e) {
+          console.error("cannot blobToImage", e);
+        }
+      }
+    }
+  });
+
+  const canvasNode = document.createElement("canvas");
+  canvasNode.classList.add("dtk-canvas");
+  rootNode.append(canvasNode);
 
   gui = new GUI({
     container: document.querySelector(".dtk-gui"),
@@ -109,18 +140,26 @@ const initialize = () => {
   gui.add(guiObject, "fps").name("最新FPS");
   gui.add(guiObject, "fpsMin").name("最小FPS");
   gui.add(guiObject, "fpsMax").name("最大FPS");
-
 };
 
 const onResize = () => {
-  const node = document.querySelector(".dtk-root");
-  node.style.width = numberToCss(document.documentElement.clientWidth);
-  node.style.height = numberToCss(document.documentElement.clientHeight);
+  const W = document.documentElement.clientWidth;
+  const H = document.documentElement.clientHeight;
+
+  const rootNode = document.querySelector(".dtk-root");
+  rootNode.style.width = numberToCss(W);
+  rootNode.style.height = numberToCss(H);
+
+  const canvasNode = document.querySelector(".dtk-canvas");
+  canvasNode.width = W * devicePixelRatio;
+  canvasNode.height = H * devicePixelRatio;
+  canvasNode.style.width = numberToCss(W);
+  canvasNode.style.height = numberToCss(H);
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  onResize();
   initialize();
+  onResize();
 
   addEventListener("resize", onResize);
 
@@ -133,6 +172,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       guiObject.fpsMin = Math.round(frameRate.getFpsMin());
       guiObject.fpsMax = Math.round(frameRate.getFpsMax());
       gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+    }
+
+    const image = images[0];
+    if (image) {
+      const W = document.documentElement.clientWidth;
+      const H = document.documentElement.clientHeight;
+
+      const canvas = document.querySelector(".dtk-canvas");
+      const context = canvas.getContext("2d");
+      context.resetTransform();
+      context.scale(devicePixelRatio, devicePixelRatio);
+      context.clearRect(0, 0, W, H);
+      context.drawImage(image, 0, 0);
     }
   }
 });

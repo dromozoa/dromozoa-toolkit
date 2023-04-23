@@ -31,6 +31,11 @@ body.dtk {
   background-color: var(--dtk-background-color);
 }
 
+.dtk-canvas {
+  display: block;
+  position: absolute;
+}
+
 .dtk-gui {
   position: fixed;
   right: 0;
