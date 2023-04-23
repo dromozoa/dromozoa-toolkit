@@ -12,4 +12,5 @@
 - [ ] フォントの作成
 - [ ] フォントの解析
 - [x] Unicodeのつくりなおし
-- [ ] @dromozoa.comのメール
+- [x] @dromozoa.comのメール
+  - honoka,nozomi経由で@me.comに転送
