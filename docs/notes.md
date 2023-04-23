@@ -14,3 +14,5 @@
 - [x] Unicodeのつくりなおし
 - [x] @dromozoa.comのメール
   - honoka,nozomi経由で@me.comに転送
+- [ ] VimのJavaScriptシンタックスの修正
+  - 引数の先頭の正規表現に色がつかない

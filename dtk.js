@@ -15,16 +15,22 @@
 // You should have received a copy of the GNU General Public License
 // along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
 
-const onResize = () => {
-  const documentElement = document.documentElement;
-  const W = documentElement.clientWidth;
-  const H = documentElement.clientHeight;
+const numberToCssRegex = /\.?0*$/;
+const numberToCss = (v, unit = "px") => {
+  if (Math.abs(v) < 0.00005) {
+    return "0";
+  } else {
+    return v.toFixed(4).replace(numberToCssRegex, "") + unit;
+  }
+};
 
+const onResize = () => {
   const node = document.querySelector(".dtk-root");
-  node.style.width = W + "px";
-  node.style.height = H + "px";
+  node.style.width = numberToCss(document.documentElement.clientWidth);
+  node.style.height = numberToCss(document.documentElement.clientHeight);
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   onResize();
+  addEventListener("resize", onResize);
 });
