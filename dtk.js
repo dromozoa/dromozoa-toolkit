@@ -14,3 +14,17 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
+
+const onResize = () => {
+  const documentElement = document.documentElement;
+  const W = documentElement.clientWidth;
+  const H = documentElement.clientHeight;
+
+  const node = document.querySelector(".dtk-root");
+  node.style.width = W + "px";
+  node.style.height = H + "px";
+};
+
+document.addEventListener("DOMContentLoaded", async () => {
+  onResize();
+});
