@@ -89,10 +89,23 @@ const canvasObject = {
   rubberBand: undefined,
 };
 
+const toolLabels = {
+  "移動 (V)": "move",
+  "矩形選択 (M)": "select",
+  "拡大縮小 (Z)": "zoom",
+};
+
+const toolCursors = {
+  move: "move",
+  select: "crosshair",
+  zoom: "zoom-in",
+};
+
 const guiObject = {
   fps: 0,
   fpsMin: 0,
   fpsMax: 0,
+  tool: "move",
 };
 
 let gui;
@@ -126,6 +139,20 @@ const updateRubberBand = ev => {
   rubberBand.h = Math.abs(y - sy);
 };
 
+const updateGui = () => {
+  gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+};
+
+const changeTool = tool => {
+  document.querySelector(".dtk-canvas").style.cursor = toolCursors[tool];
+};
+
+const updateTool = tool => {
+  guiObject.tool = tool;
+  updateGui();
+  changeTool(tool);
+};
+
 const initialize = () => {
   const rootNode = document.querySelector(".dtk-root");
   rootNode.addEventListener("dragover", ev => ev.preventDefault());
@@ -157,10 +184,11 @@ const initialize = () => {
     }
   });
   canvasNode.addEventListener("mouseup", ev => {
-    updateRubberBand(ev);
-    canvasObject.mouseDown = undefined;
+    if (canvasObject.mouseDown) {
+      updateRubberBand(ev);
+      canvasObject.mouseDown = undefined;
+    }
   });
-
   rootNode.append(canvasNode);
 
   gui = new GUI({
@@ -170,6 +198,24 @@ const initialize = () => {
   gui.add(guiObject, "fps").name("最新FPS");
   gui.add(guiObject, "fpsMin").name("最小FPS");
   gui.add(guiObject, "fpsMax").name("最大FPS");
+  gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(changeTool);
+};
+
+const onKeyDown = ev => {
+  switch (ev.code) {
+    case "KeyV":
+      ev.preventDefault();
+      updateTool("move");
+      break;
+    case "KeyM":
+      ev.preventDefault();
+      updateTool("select");
+      break;
+    case "KeyZ":
+      ev.preventDefault();
+      updateTool("zoom");
+      break;
+  }
 };
 
 const onResize = () => {
@@ -194,7 +240,7 @@ const draw = () => {
   const canvas = document.querySelector(".dtk-canvas");
   const context = canvas.getContext("2d");
   context.strokeStyle = "#F00";
-  context.lineWidth = 0.5;
+  context.lineWidth = 1 / devicePixelRatio;
 
   context.resetTransform();
   context.scale(devicePixelRatio, devicePixelRatio);
@@ -216,6 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initialize();
   onResize();
 
+  addEventListener("keydown", onKeyDown);
   addEventListener("resize", onResize);
 
   const frameRate = new FrameRate(60);
@@ -226,7 +273,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       guiObject.fps = Math.round(frameRate.getFps());
       guiObject.fpsMin = Math.round(frameRate.getFpsMin());
       guiObject.fpsMax = Math.round(frameRate.getFpsMax());
-      gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+      updateGui();
     }
     draw();
   }
