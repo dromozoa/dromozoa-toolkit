@@ -17,11 +17,27 @@
  * along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
  */
 
+:root {
+  --dtk-background-color: #999;
+}
+
 body.dtk {
-  background-color: red;
+  background-color: var(--dtk-background-color);
   margin: 0;
 }
 
 .dtk-root {
-  background-color: blue;
+  position: absolute;
+  background-color: var(--dtk-background-color);
+}
+
+.dtk-canvas {
+  display: block;
+  position: absolute;
+}
+
+.dtk-gui {
+  position: fixed;
+  right: 0;
+  top: 0;
 }
