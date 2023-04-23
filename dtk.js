@@ -15,7 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with dromozoa-toolkit. If not, see <https://www.gnu.org/licenses/>.
 
+/* jshint esversion: 8 */
+
 import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm';
+
+const requestAnimationFrame = () => new Promise(resolve => {
+  return globalThis.requestAnimationFrame(resolve);
+});
+
+const setTimeout = (delay, ...params) => new Promise(resolve => {
+  return globalThis.setTimeout(resolve, delay, ...params);
+});
 
 const numberToCssRegex = /\.?0*$/;
 const numberToCss = (v, unit = "px") => {
@@ -26,12 +36,80 @@ const numberToCss = (v, unit = "px") => {
   }
 };
 
+//-------------------------------------------------------------------------
+
+const FrameRate = class {
+  constructor(size) {
+    this.size = size;
+    this.frameCount = 0;
+    this.frameRates = [];
+    this.previousTimestamp = undefined;
+  }
+
+  update(timestamp) {
+    if (this.previousTimestamp === undefined) {
+      this.previousTimestamp = timestamp;
+      return false;
+    }
+    ++this.frameCount;
+    const duration = timestamp - this.previousTimestamp;
+    if (duration < 1000) {
+      return false;
+    }
+    const frameRate = this.frameCount * 1000 / duration;
+
+    this.frameCount = 0;
+    this.frameRates.push(frameRate);
+    this.previousTimestamp = timestamp;
+    const n = this.frameRates.length - this.size;
+    if (n > 0) {
+      this.frameRates.splice(0, n);
+    }
+    return true;
+  }
+
+  getFps() {
+    return this.frameRates[this.frameRates.length - 1];
+  }
+
+  getFpsMin() {
+    return this.frameRates.reduce((acc, value) => Math.min(acc, value), +Infinity);
+  }
+
+  getFpsMax() {
+    return this.frameRates.reduce((acc, value) => Math.max(acc, value), -Infinity);
+  }
+};
+
+//-------------------------------------------------------------------------
+
+const guiObject = {
+  fps: 0,
+  fpsMin: 0,
+  fpsMax: 0,
+};
+
 let gui;
 
+//-------------------------------------------------------------------------
+
 const initialize = () => {
+  const node = document.querySelector(".dtk-root");
+  node.addEventListener("dragover", ev => ev.preventDefault());
+  node.addEventListener("drop", ev => {
+    ev.preventDefault();
+
+    // ファイル処理
+  });
+
   gui = new GUI({
     container: document.querySelector(".dtk-gui"),
   });
+
+  gui.add(guiObject, "fps").name("最新FPS");
+  gui.add(guiObject, "fpsMin").name("最小FPS");
+  gui.add(guiObject, "fpsMax").name("最大FPS");
+
 };
 
 const onResize = () => {
@@ -45,4 +123,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   initialize();
 
   addEventListener("resize", onResize);
+
+  const frameRate = new FrameRate(60);
+
+  while (true) {
+    const timestamp = await requestAnimationFrame();
+    if (frameRate.update(timestamp)) {
+      guiObject.fps = Math.round(frameRate.getFps());
+      guiObject.fpsMin = Math.round(frameRate.getFpsMin());
+      guiObject.fpsMax = Math.round(frameRate.getFpsMax());
+      gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+    }
+  }
 });
