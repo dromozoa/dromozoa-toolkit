@@ -83,7 +83,11 @@ const FrameRate = class {
 
 //-------------------------------------------------------------------------
 
-const images = [];
+const canvasObject = {
+  image: undefined,
+  mouseDown: undefined,
+  rubberBand: undefined,
+};
 
 const guiObject = {
   fps: 0,
@@ -111,6 +115,17 @@ const blobToImage = blob => new Promise((resolve, reject) => {
   image.src = url;
 });
 
+const updateRubberBand = ev => {
+  const { x: sx, y: sy } = canvasObject.mouseDown;
+  const x = ev.offsetX;
+  const y = ev.offsetY;
+  const rubberBand = canvasObject.rubberBand;
+  rubberBand.x = Math.min(sx, x);
+  rubberBand.y = Math.min(sy, y);
+  rubberBand.w = Math.abs(x - sx);
+  rubberBand.h = Math.abs(y - sy);
+};
+
 const initialize = () => {
   const rootNode = document.querySelector(".dtk-root");
   rootNode.addEventListener("dragover", ev => ev.preventDefault());
@@ -120,8 +135,7 @@ const initialize = () => {
       for (let i = 0; i < ev.dataTransfer.files.length; ++i) {
         const file = ev.dataTransfer.files.item(i);
         try {
-          const image = await blobToImage(file);
-          images.push(image);
+          canvasObject.image = await blobToImage(file);
         } catch (e) {
           console.error("cannot blobToImage", e);
         }
@@ -131,6 +145,22 @@ const initialize = () => {
 
   const canvasNode = document.createElement("canvas");
   canvasNode.classList.add("dtk-canvas");
+  canvasNode.addEventListener("mousedown", ev => {
+    const x = ev.offsetX;
+    const y = ev.offsetY;
+    canvasObject.mouseDown = { x: x, y: y };
+    canvasObject.rubberBand = { x: x, y: y, w: 0, h: 0 };
+  });
+  canvasNode.addEventListener("mousemove", ev => {
+    if (canvasObject.mouseDown) {
+      updateRubberBand(ev);
+    }
+  });
+  canvasNode.addEventListener("mouseup", ev => {
+    updateRubberBand(ev);
+    canvasObject.mouseDown = undefined;
+  });
+
   rootNode.append(canvasNode);
 
   gui = new GUI({
@@ -157,6 +187,31 @@ const onResize = () => {
   canvasNode.style.height = numberToCss(H);
 };
 
+const draw = () => {
+  const W = document.documentElement.clientWidth;
+  const H = document.documentElement.clientHeight;
+
+  const canvas = document.querySelector(".dtk-canvas");
+  const context = canvas.getContext("2d");
+  context.strokeStyle = "#F00";
+  context.lineWidth = 0.5;
+
+  context.resetTransform();
+  context.scale(devicePixelRatio, devicePixelRatio);
+  context.clearRect(0, 0, W, H);
+
+  const image = canvasObject.image;
+  if (image) {
+    context.drawImage(image, 0, 0);
+  }
+
+  const rubberBand = canvasObject.rubberBand;
+  if (rubberBand) {
+    const { x, y, w, h } = rubberBand;
+    context.strokeRect(x, y, w, h);
+  }
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   initialize();
   onResize();
@@ -173,18 +228,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       guiObject.fpsMax = Math.round(frameRate.getFpsMax());
       gui.controllersRecursive().forEach(controller => controller.updateDisplay());
     }
-
-    const image = images[0];
-    if (image) {
-      const W = document.documentElement.clientWidth;
-      const H = document.documentElement.clientHeight;
-
-      const canvas = document.querySelector(".dtk-canvas");
-      const context = canvas.getContext("2d");
-      context.resetTransform();
-      context.scale(devicePixelRatio, devicePixelRatio);
-      context.clearRect(0, 0, W, H);
-      context.drawImage(image, 0, 0);
-    }
+    draw();
   }
 });
