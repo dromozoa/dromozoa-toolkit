@@ -190,10 +190,11 @@ const blobToImage = blob => new Promise((resolve, reject) => {
 const CanvasObject = class {
   constructor() {
     this.canvas = undefined;
-    this.canvasWidth = undefined;
-    this.canvasHeight = undefined;
+    this.canvasSize = new Vector3();
     this.image = undefined;
+    this.imageSize = new Vector3();
     this.transform = new Matrix3().setIdentity();
+    this.mouse = undefined;
   }
 
   initialize() {
@@ -208,44 +209,43 @@ const CanvasObject = class {
     this.canvas.height = height * devicePixelRatio;
     this.canvas.style.width = numberToCss(width);
     this.canvas.style.height = numberToCss(height);
-    this.canvasWidth = width;
-    this.canvasHeight = height;
-
-    // 画像があったら移動する
+    this.canvasSize.set(width, height, 0);
   }
 
-  setImage(image) {
+  setImage(imageName, image) {
+    this.imageName = imageName;
     this.image = image;
+    this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
 
-    const cw = this.canvasWidth;
-    const ch = this.canvasHeight;
-    const w = this.image.naturalWidth;
-    const h = this.image.naturalHeight;
-    const s = Math.min(cw / w, ch / h, 1);
-    // this.transform.set(s, 0, 0, 0, s, 0, 0, 0, 1);
-
-    const u = new Vector3(cw, ch, 0);
-    const v = new Vector3(w, h, 0).scale(s);
-    u.sub(v).scale(0.5);
-    // const x = (cw - w * s) * 0.5;
-    // const y = (ch - h * s) * 0.5;
-    this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
+    const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
+    const u = new Vector3().scale(0.5, this.canvasSize);
+    const v = new Vector3().scale(0.5 * s, this.imageSize);
+    const { x, y } = u.sub(v);
+    this.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
   }
 
   mouseDown(ev) {
+    this.mouse = new Vector3(ev.offsetX, ev.offsetY, 0);
   }
 
   mouseMove(ev) {
+    // 移動モード
+    if (this.mouse) {
+      const p = new Vector3(ev.offsetX, ev.offsetY, 0);
+      const d = p.sub(this.mouse);
+    }
+
   }
 
   mouseUp(ev) {
+    this.mouse = undefined;
   }
 
   draw() {
     const context = this.canvas.getContext("2d");
     context.resetTransform();
     context.scale(devicePixelRatio, devicePixelRatio);
-    context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+    context.clearRect(0, 0, this.canvasSize.x, this.canvasSize.y);
 
     const {
       m11, m12, m13: dx,
@@ -396,9 +396,9 @@ const initialize = () => {
       for (let i = 0; i < ev.dataTransfer.files.length; ++i) {
         const file = ev.dataTransfer.files.item(i);
         try {
-          canvasObject.setImage(await blobToImage(file));
+          canvasObject.setImage(file.name, await blobToImage(file));
         } catch (e) {
-          console.error("cannot blobToImage", e);
+          console.error("cannot read " + file.name, e);
         }
       }
     }
