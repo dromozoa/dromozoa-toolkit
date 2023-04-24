@@ -39,10 +39,6 @@ const Tuple2 = class {
     this.set(...params);
   }
 
-  clone() {
-    return new Tuple2(this);
-  }
-
   set(A, y) {
     if (A === undefined) {
       return this.set(0, 0);
@@ -119,11 +115,30 @@ const Point2 = class extends Tuple2 {
   get z() {
     return 1;
   }
+
+  clone() {
+    return new Point2(this);
+  }
+
+  distanceSquared(A) {
+    const x = A.x - this.x;
+    const y = A.y - this.y;
+    return x * x + y * y;
+  }
 };
 
 const Vector2 = class extends Tuple2 {
   get z() {
     return 0;
+  }
+
+  clone() {
+    return new Vector2(this);
+  }
+
+  lengthSquared() {
+    const { x, y } = this;
+    return x * x + y * y;
   }
 };
 
@@ -305,10 +320,11 @@ const CanvasObject = class {
   }
 
   mouseDown(ev) {
-    this.mouse = new Point2(ev.offsetX, ev.offsetY);
-    if (this.tool === "select") {
+    if (this.tool === "normal") {
+      this.mouse = new Point2(ev.offsetX, ev.offsetY);
+    } else if (this.tool === "select") {
       const A = this.transform.clone().invert();
-      const u = new Point2(this.mouse);
+      const u = new Point2(ev.offsetX, ev.offsetY);
       A.transform(u).round().clamp(0, this.imageSize);
       this.rubberBandStart = u;
       this.rubberBand[0].set(0, 0);
@@ -336,6 +352,24 @@ const CanvasObject = class {
         this.rubberBand[1].sub(v, u).absolute();
         this.updateGuiRubberBand();
       }
+    } else if (this.tool === "modify") {
+      const R2 = 16;
+
+      let cursor = "default";
+
+      const [ p, s ] = this.rubberBand;
+      if (s.lengthSquared() > 0) {
+        const A = this.transform.clone().invert();
+        const u = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(u).round();
+
+        const q = p.clone().add(s.clone().scale(0.5));
+        if (q.distanceSquared(u) <= R2) {
+          cursor = "move";
+        }
+      }
+
+      this.canvas.style.cursor = cursor;
     }
   }
 
@@ -375,16 +409,16 @@ const CanvasObject = class {
     }
 
     if (this.rubberBand) {
-      const [ u, s ] = this.rubberBand;
-      context.lineWidth = 1 / devicePixelRatio / m11;
+      const [ p, s ] = this.rubberBand;
+      context.lineWidth = 1 / m11;
       context.strokeStyle = this.rubberBandStyle;
 
       context.beginPath();
-      context.rect(u.x, u.y, s.x, s.y);
-      context.moveTo(u.x, u.y);
-      context.lineTo(u.x + s.x, u.y + s.y);
-      context.moveTo(u.x, u.y + s.y);
-      context.lineTo(u.x + s.x, u.y);
+      context.rect(p.x, p.y, s.x, s.y);
+      context.moveTo(p.x, p.y);
+      context.lineTo(p.x + s.x, p.y + s.y);
+      context.moveTo(p.x, p.y + s.y);
+      context.lineTo(p.x + s.x, p.y);
       context.stroke();
     }
   }
@@ -442,13 +476,14 @@ const canvasObject = new CanvasObject();
 const toolLabels = {
   "通常": "normal",
   "選択": "select",
+  "変形": "modify",
 };
 
 const guiObject = {
+  tool: "normal",
   fps: 0,
   fpsMin: 0,
   fpsMax: 0,
-  tool: "normal",
   imageFillStyle: "#999999",
   imageName: "",
   imageWidth: 0,
@@ -493,19 +528,28 @@ const initialize = () => {
     container: document.querySelector(".dtk-gui"),
   });
 
-  gui.add(guiObject, "fps").name("最新FPS");
-  gui.add(guiObject, "fpsMin").name("最小FPS");
-  gui.add(guiObject, "fpsMax").name("最大FPS");
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
-  gui.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
-  gui.add(guiObject, "imageName").name("画像ファイル名");
-  gui.add(guiObject, "imageWidth").name("画像幅");
-  gui.add(guiObject, "imageHeight").name("画像高さ");
-  gui.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
-  gui.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
-  gui.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
-  gui.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
-  gui.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+  {
+    const folder = gui.addFolder("FPS");
+    folder.add(guiObject, "fps").name("最新FPS");
+    folder.add(guiObject, "fpsMin").name("最小FPS");
+    folder.add(guiObject, "fpsMax").name("最大FPS");
+  }
+  {
+    const folder = gui.addFolder("画像");
+    folder.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
+    folder.add(guiObject, "imageName").name("画像ファイル名");
+    folder.add(guiObject, "imageWidth").name("画像幅");
+    folder.add(guiObject, "imageHeight").name("画像高さ");
+  }
+  {
+    const folder = gui.addFolder("矩形選択");
+    folder.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
+    folder.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+  }
 
   canvasObject.setTool(guiObject.tool);
   canvasObject.setImageFillStyle(guiObject.imageFillStyle);
