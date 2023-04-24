@@ -111,6 +111,91 @@ const Matrix3 = class {
 
 //-------------------------------------------------------------------------
 
+const blobToImage = blob => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(blob);
+
+  const image = new Image();
+  image.addEventListener("load", () => {
+    URL.revokeObjectURL(url);
+    resolve(image);
+  });
+  image.addEventListener("error", ev => {
+    URL.revokeObjectURL(url);
+    reject(ev);
+  });
+
+  image.src = url;
+});
+
+const CanvasObject = class {
+  constructor() {
+    this.canvas = undefined;
+    this.canvasWidth = undefined;
+    this.canvasHeight = undefined;
+    this.image = undefined;
+    this.transform = new Matrix3().setIdentity();
+  }
+
+  initialize() {
+    this.canvas = document.createElement("canvas");
+    this.canvas.addEventListener("mousedown", ev => this.mouseDown(ev));
+    this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
+    this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
+  }
+
+  resize(width, height) {
+    this.canvas.width = width * devicePixelRatio;
+    this.canvas.height = height * devicePixelRatio;
+    this.canvas.style.width = numberToCss(width);
+    this.canvas.style.height = numberToCss(height);
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+
+    // 画像があったら移動する
+  }
+
+  setImage(image) {
+    this.image = image;
+
+    const cw = this.canvasWidth;
+    const ch = this.canvasHeight;
+    const w = this.image.naturalWidth;
+    const h = this.image.naturalHeight;
+    const s = Math.min(cw / w, ch / h, 1);
+    const x = (cw - w * s) * 0.5;
+    const y = (ch - h * s) * 0.5;
+    this.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
+  }
+
+  mouseDown(ev) {
+  }
+
+  mouseMove(ev) {
+  }
+
+  mouseUp(ev) {
+  }
+
+  draw() {
+    const context = this.canvas.getContext("2d");
+    context.resetTransform();
+    context.scale(devicePixelRatio, devicePixelRatio);
+    context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+    const {
+      m11, m12, m13: dx,
+      m21, m22, m23: dy,
+    } = this.transform;
+    context.transform(m11, m21, m21, m22, dx, dy);
+
+    if (this.image) {
+      context.drawImage(this.image, 0, 0);
+    }
+  }
+};
+
+//-------------------------------------------------------------------------
+
 const FrameRate = class {
   constructor(size) {
     this.size = size;
@@ -156,13 +241,15 @@ const FrameRate = class {
 
 //-------------------------------------------------------------------------
 
-const canvasObject = {
-  image: undefined,
-  transform: new Matrix3().setIdentity(),
+const canvasObject = new CanvasObject();
 
-  mouseDown: undefined,
-  rubberBand: undefined,
-};
+// const canvasObject = {
+//   image: undefined,
+//   transform: new Matrix3().setIdentity(),
+// 
+//   mouseDown: undefined,
+//   rubberBand: undefined,
+// };
 
 const toolLabels = {
   "移動 (V)": "move",
@@ -187,22 +274,6 @@ let gui;
 
 //-------------------------------------------------------------------------
 
-const blobToImage = blob => new Promise((resolve, reject) => {
-  const url = URL.createObjectURL(blob);
-
-  const image = new Image();
-  image.addEventListener("load", () => {
-    URL.revokeObjectURL(url);
-    resolve(image);
-  });
-  image.addEventListener("error", ev => {
-    URL.revokeObjectURL(url);
-    reject(ev);
-  });
-
-  image.src = url;
-});
-
 const updateRubberBand = ev => {
   const { x: sx, y: sy } = canvasObject.mouseDown;
   const x = ev.offsetX;
@@ -212,20 +283,6 @@ const updateRubberBand = ev => {
   rubberBand.y = Math.min(sy, y);
   rubberBand.w = Math.abs(x - sx);
   rubberBand.h = Math.abs(y - sy);
-};
-
-const resetTransform = () => {
-  const CW = document.documentElement.clientWidth;
-  const CH = document.documentElement.clientHeight;
-
-  const W = canvasObject.image.naturalWidth;
-  const H = canvasObject.image.naturalHeight;
-  const s = Math.min(CW / W, CH / H, 1);
-  const x = (CW - W * s) * 0.5;
-  const y = (CH - H * s) * 0.5;
-  console.log(W, H, s, x, y);
-
-  canvasObject.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
 };
 
 const updateGui = () => {
@@ -243,24 +300,7 @@ const updateTool = tool => {
   changeTool(tool);
 };
 
-const initialize = () => {
-  const rootNode = document.querySelector(".dtk-root");
-  rootNode.addEventListener("dragover", ev => ev.preventDefault());
-  rootNode.addEventListener("drop", async ev => {
-    ev.preventDefault();
-    if (ev.dataTransfer && ev.dataTransfer.files) {
-      for (let i = 0; i < ev.dataTransfer.files.length; ++i) {
-        const file = ev.dataTransfer.files.item(i);
-        try {
-          canvasObject.image = await blobToImage(file);
-          resetTransform();
-        } catch (e) {
-          console.error("cannot blobToImage", e);
-        }
-      }
-    }
-  });
-
+/*
   const canvasNode = document.createElement("canvas");
   canvasNode.classList.add("dtk-canvas");
   canvasNode.addEventListener("mousedown", ev => {
@@ -280,7 +320,28 @@ const initialize = () => {
       canvasObject.mouseDown = undefined;
     }
   });
-  rootNode.append(canvasNode);
+*/
+
+const initialize = () => {
+  const rootNode = document.querySelector(".dtk-root");
+  rootNode.addEventListener("dragover", ev => ev.preventDefault());
+  rootNode.addEventListener("drop", async ev => {
+    ev.preventDefault();
+    if (ev.dataTransfer && ev.dataTransfer.files) {
+      for (let i = 0; i < ev.dataTransfer.files.length; ++i) {
+        const file = ev.dataTransfer.files.item(i);
+        try {
+          canvasObject.setImage(await blobToImage(file));
+        } catch (e) {
+          console.error("cannot blobToImage", e);
+        }
+      }
+    }
+  });
+
+  canvasObject.initialize();
+  canvasObject.canvas.classList.add("dtk-canvas");
+  rootNode.append(canvasObject.canvas);
 
   gui = new GUI({
     container: document.querySelector(".dtk-gui"),
@@ -289,11 +350,11 @@ const initialize = () => {
   gui.add(guiObject, "fps").name("最新FPS");
   gui.add(guiObject, "fpsMin").name("最小FPS");
   gui.add(guiObject, "fpsMax").name("最大FPS");
-  gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(changeTool);
-
-  changeTool(guiObject.tool);
+  // gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(changeTool);
+  // changeTool(guiObject.tool);
 };
 
+/*
 const onKeyDown = ev => {
   switch (ev.code) {
     case "KeyV":
@@ -310,8 +371,9 @@ const onKeyDown = ev => {
       break;
   }
 };
+*/
 
-const onResize = () => {
+const resize = () => {
   const W = document.documentElement.clientWidth;
   const H = document.documentElement.clientHeight;
 
@@ -319,11 +381,13 @@ const onResize = () => {
   rootNode.style.width = numberToCss(W);
   rootNode.style.height = numberToCss(H);
 
-  const canvasNode = document.querySelector(".dtk-canvas");
-  canvasNode.width = W * devicePixelRatio;
-  canvasNode.height = H * devicePixelRatio;
-  canvasNode.style.width = numberToCss(W);
-  canvasNode.style.height = numberToCss(H);
+  canvasObject.resize(W, H);
+
+  // const canvasNode = document.querySelector(".dtk-canvas");
+  // canvasNode.width = W * devicePixelRatio;
+  // canvasNode.height = H * devicePixelRatio;
+  // canvasNode.style.width = numberToCss(W);
+  // canvasNode.style.height = numberToCss(H);
 };
 
 const draw = () => {
@@ -359,10 +423,10 @@ const draw = () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   initialize();
-  onResize();
+  resize();
 
-  addEventListener("keydown", onKeyDown);
-  addEventListener("resize", onResize);
+  // addEventListener("keydown", onKeyDown);
+  addEventListener("resize", resize);
 
   const frameRate = new FrameRate(60);
 
@@ -374,6 +438,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       guiObject.fpsMax = Math.round(frameRate.getFpsMax());
       updateGui();
     }
-    draw();
+
+    canvasObject.draw();
   }
 });
