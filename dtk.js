@@ -194,6 +194,9 @@ const CanvasObject = class {
   constructor() {
     this.canvas = undefined;
     this.canvasSize = new Vector2();
+    this.tool = undefined;
+    this.imageFillColor = undefined;
+    this.imageName = undefined;
     this.image = undefined;
     this.imageSize = new Vector2();
     this.transform = new Matrix3().setIdentity();
@@ -206,6 +209,14 @@ const CanvasObject = class {
     this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
     this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
+  }
+
+  setTool(tool) {
+    this.tool = tool;
+  }
+
+  setImageFillColor(imageFillColor) {
+    this.imageFillColor = imageFillColor;
   }
 
   resize(width, height) {
@@ -270,7 +281,7 @@ const CanvasObject = class {
     context.transform(m11, m21, m21, m22, dx, dy);
 
     if (this.image) {
-      context.fillStyle = "#999";
+      context.fillStyle = this.imageFillColor;
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
       context.drawImage(this.image, 0, 0);
     }
@@ -326,84 +337,29 @@ const FrameRate = class {
 
 const canvasObject = new CanvasObject();
 
-// const canvasObject = {
-//   image: undefined,
-//   transform: new Matrix3().setIdentity(),
-// 
-//   mouseDown: undefined,
-//   rubberBand: undefined,
-// };
-
 const toolLabels = {
-  "移動 (V)": "move",
-  "矩形選択 (M)": "select",
-  "拡大縮小 (Z)": "zoom",
-};
-
-const toolCursors = {
-  move: "move",
-  select: "crosshair",
-  zoom: "zoom-in",
+  "通常": "normal",
+  "選択": "select",
 };
 
 const guiObject = {
   fps: 0,
   fpsMin: 0,
   fpsMax: 0,
-  tool: "select",
+  tool: "normal",
+  imageFillColor: "#999999",
+  imageName: "",
+  imageWidth: 0,
+  imageHeight: 0,
 };
 
 let gui;
 
 //-------------------------------------------------------------------------
 
-const updateRubberBand = ev => {
-  const { x: sx, y: sy } = canvasObject.mouseDown;
-  const x = ev.offsetX;
-  const y = ev.offsetY;
-  const rubberBand = canvasObject.rubberBand;
-  rubberBand.x = Math.min(sx, x);
-  rubberBand.y = Math.min(sy, y);
-  rubberBand.w = Math.abs(x - sx);
-  rubberBand.h = Math.abs(y - sy);
-};
-
 const updateGui = () => {
   gui.controllersRecursive().forEach(controller => controller.updateDisplay());
 };
-
-const changeTool = tool => {
-  // document.querySelector(".dtk-canvas").style.cursor = toolCursors[tool];
-  canvasObject.mouseDown = undefined;
-};
-
-const updateTool = tool => {
-  guiObject.tool = tool;
-  updateGui();
-  changeTool(tool);
-};
-
-/*
-  const canvasNode = document.createElement("canvas");
-  canvasNode.classList.add("dtk-canvas");
-  canvasNode.addEventListener("mousedown", ev => {
-    const x = ev.offsetX;
-    const y = ev.offsetY;
-    canvasObject.mouseDown = { x: x, y: y };
-    canvasObject.rubberBand = { x: x, y: y, w: 0, h: 0 };
-  });
-  canvasNode.addEventListener("mousemove", ev => {
-    if (canvasObject.mouseDown) {
-      updateRubberBand(ev);
-    }
-  });
-  canvasNode.addEventListener("mouseup", ev => {
-    if (canvasObject.mouseDown) {
-      updateRubberBand(ev);
-      canvasObject.mouseDown = undefined;
-    }
-  });
-*/
 
 const initialize = () => {
   const rootNode = document.querySelector(".dtk-root");
@@ -415,6 +371,10 @@ const initialize = () => {
         const file = ev.dataTransfer.files.item(i);
         try {
           canvasObject.setImage(file.name, await blobToImage(file));
+          guiObject.imageName = canvasObject.imageName;
+          guiObject.imageWidth = canvasObject.imageSize.x;
+          guiObject.imageHeight = canvasObject.imageSize.y;
+          updateGui();
         } catch (e) {
           console.error("cannot read " + file.name, e);
         }
@@ -433,28 +393,15 @@ const initialize = () => {
   gui.add(guiObject, "fps").name("最新FPS");
   gui.add(guiObject, "fpsMin").name("最小FPS");
   gui.add(guiObject, "fpsMax").name("最大FPS");
-  // gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(changeTool);
-  // changeTool(guiObject.tool);
-};
+  gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
+  gui.addColor(guiObject, "imageFillColor").name("画像背景色").onChange(v => canvasObject.setImageFillColor(v));
+  gui.add(guiObject, "imageName").name("画像ファイル名");
+  gui.add(guiObject, "imageWidth").name("画像幅 [px]");
+  gui.add(guiObject, "imageHeight").name("画像高さ [px]");
 
-/*
-const onKeyDown = ev => {
-  switch (ev.code) {
-    case "KeyV":
-      ev.preventDefault();
-      updateTool("move");
-      break;
-    case "KeyM":
-      ev.preventDefault();
-      updateTool("select");
-      break;
-    case "KeyZ":
-      ev.preventDefault();
-      updateTool("zoom");
-      break;
-  }
+  canvasObject.setTool(guiObject.tool);
+  canvasObject.setImageFillColor(guiObject.imageFillColor);
 };
-*/
 
 const resize = () => {
   const W = document.documentElement.clientWidth;
@@ -465,50 +412,12 @@ const resize = () => {
   rootNode.style.height = numberToCss(H);
 
   canvasObject.resize(W, H);
-
-  // const canvasNode = document.querySelector(".dtk-canvas");
-  // canvasNode.width = W * devicePixelRatio;
-  // canvasNode.height = H * devicePixelRatio;
-  // canvasNode.style.width = numberToCss(W);
-  // canvasNode.style.height = numberToCss(H);
-};
-
-const draw = () => {
-  const W = document.documentElement.clientWidth;
-  const H = document.documentElement.clientHeight;
-
-  const canvas = document.querySelector(".dtk-canvas");
-  const context = canvas.getContext("2d");
-  context.strokeStyle = "#F00";
-  context.lineWidth = 1 / devicePixelRatio;
-
-  context.resetTransform();
-  context.scale(devicePixelRatio, devicePixelRatio);
-  context.clearRect(0, 0, W, H);
-
-  const rubberBand = canvasObject.rubberBand;
-  if (rubberBand) {
-    const { x, y, w, h } = rubberBand;
-    context.strokeRect(x, y, w, h);
-  }
-
-  const {
-    m11, m12, m13: dx,
-    m21, m22, m23: dy,
-  } = canvasObject.transform;
-  context.transform(m11, m21, m21, m22, dx, dy);
-
-  const image = canvasObject.image;
-  if (image) {
-    context.drawImage(image, 0, 0);
-  }
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   initialize();
   resize();
 
-  // addEventListener("keydown", onKeyDown);
   addEventListener("resize", resize);
 
   const frameRate = new FrameRate(60);
