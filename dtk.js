@@ -38,24 +38,23 @@ const numberToCss = (v, unit = "px") => {
 
 //-------------------------------------------------------------------------
 
-const Vector3 = class {
+const Tuple2 = class {
   constructor(...params) {
     this.set(...params);
   }
 
   clone() {
-    return new Vector3(this);
+    return new Tuple2(this);
   }
 
-  set(A, y, z) {
+  set(A, y) {
     if (A === undefined) {
-      return this.set(0, 0, 0);
+      return this.set(0, 0);
     } else if (y === undefined) {
-      return this.set(A.x, A.y, A.z);
+      return this.set(A.x, A.y);
     } else {
       this.x = A;
       this.y = y;
-      this.z = z;
       return this;
     }
   }
@@ -65,7 +64,7 @@ const Vector3 = class {
       B = A;
       A = this;
     }
-    return this.set(A.x + B.x, A.y + B.y, A.z + B.z);
+    return this.set(A.x + B.x, A.y + B.y);
   }
 
   sub(A, B) {
@@ -73,16 +72,19 @@ const Vector3 = class {
       B = A;
       A = this;
     }
-    return this.set(A.x - B.x, A.y - B.y, A.z - B.z);
+    return this.set(A.x - B.x, A.y - B.y);
   }
 
   scale(s, A) {
     if (A === undefined) {
       A = this;
     }
-    return this.set(s * A.x, s * A.y, s * A.z);
+    return this.set(s * A.x, s * A.y);
   }
-}
+};
+
+const Point2 = class extends Tuple2 {};
+const Vector2 = class extends Tuple2 {};
 
 //-------------------------------------------------------------------------
 
@@ -161,7 +163,8 @@ const Matrix3 = class {
     if (B === undefined) {
       B = A;
     }
-    const { x, y, z } = A;
+    const { x, y } = A;
+    const z = A instanceof Point2 ? 1 : 0;
     return B.set(
       this.m11 * x + this.m12 * y + this.m13 * z,
       this.m21 * x + this.m22 * y + this.m23 * z,
@@ -190,9 +193,9 @@ const blobToImage = blob => new Promise((resolve, reject) => {
 const CanvasObject = class {
   constructor() {
     this.canvas = undefined;
-    this.canvasSize = new Vector3();
+    this.canvasSize = new Vector2();
     this.image = undefined;
-    this.imageSize = new Vector3();
+    this.imageSize = new Vector2();
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
   }
@@ -202,6 +205,7 @@ const CanvasObject = class {
     this.canvas.addEventListener("mousedown", ev => this.mouseDown(ev));
     this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
     this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
+    this.canvas.addEventListener("wheel", ev => this.wheel(ev));
   }
 
   resize(width, height) {
@@ -209,7 +213,7 @@ const CanvasObject = class {
     this.canvas.height = height * devicePixelRatio;
     this.canvas.style.width = numberToCss(width);
     this.canvas.style.height = numberToCss(height);
-    this.canvasSize.set(width, height, 0);
+    this.canvasSize.set(width, height);
   }
 
   setImage(imageName, image) {
@@ -218,27 +222,39 @@ const CanvasObject = class {
     this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
 
     const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
-    const u = new Vector3().scale(0.5, this.canvasSize);
-    const v = new Vector3().scale(0.5 * s, this.imageSize);
-    const { x, y } = u.sub(v);
-    this.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
+    const u = new Vector2().scale(0.5, this.canvasSize);
+    const v = new Vector2().scale(0.5 * s, this.imageSize);
+    u.sub(v);
+    this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
   }
 
   mouseDown(ev) {
-    this.mouse = new Vector3(ev.offsetX, ev.offsetY, 0);
+    this.mouse = new Point2(ev.offsetX, ev.offsetY);
   }
 
   mouseMove(ev) {
-    // 移動モード
     if (this.mouse) {
-      const p = new Vector3(ev.offsetX, ev.offsetY, 0);
-      const d = p.sub(this.mouse);
+      const { offsetX: x, offsetY: y } = ev;
+      const u = new Vector2(x, y).sub(this.mouse);
+      this.transform.m13 += u.x;
+      this.transform.m23 += u.y;
+      this.mouse.set(x, y);
     }
-
   }
 
   mouseUp(ev) {
     this.mouse = undefined;
+  }
+
+  wheel(ev) {
+    ev.preventDefault();
+    const { offsetX: x, offsetY: y, deltaY: d } = ev;
+
+    const s = 1 - d * 0.01;
+    const A = new Matrix3(1, 0, +x, 0, 1, +y, 0, 0, 1);
+    const B = new Matrix3(s, 0,  0, 0, s,  0, 0, 0, 1);
+    const C = new Matrix3(1, 0, -x, 0, 1, -y, 0, 0, 1);
+    this.transform = A.mul(B).mul(C).mul(this.transform);
   }
 
   draw() {
