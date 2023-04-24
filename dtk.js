@@ -77,6 +77,42 @@ const Tuple2 = class {
     }
     return this.set(s * A.x, s * A.y);
   }
+
+  absolute(A) {
+    if (A === undefined) {
+      A = this;
+    }
+    return this.set(Math.abs(A.x), Math.abs(A.y));
+  }
+
+  round(A) {
+    if (A === undefined) {
+      A = this;
+    }
+    return this.set(Math.round(A.x), Math.round(A.y));
+  }
+
+  clamp(min, max, A) {
+    if (A === undefined) {
+      A = this;
+    }
+    let { x, y } = A;
+    if (typeof min === "number") {
+      x = Math.max(x, min);
+      y = Math.max(y, min);
+    } else {
+      x = Math.max(x, min.x);
+      y = Math.max(y, min.y);
+    }
+    if (typeof max === "number") {
+      x = Math.min(x, max);
+      y = Math.min(y, max);
+    } else {
+      x = Math.min(x, max.x);
+      y = Math.min(y, max.y);
+    }
+    return this.set(x, y);
+  }
 };
 
 const Point2 = class extends Tuple2 {
@@ -205,6 +241,8 @@ const CanvasObject = class {
     this.imageSize = new Vector2();
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
+    this.rubberBandStart = undefined;
+    this.rubberBand = [ new Point2(), new Vector2() ];
   }
 
   initialize() {
@@ -215,14 +253,6 @@ const CanvasObject = class {
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
   }
 
-  setTool(tool) {
-    this.tool = tool;
-  }
-
-  setImageFillStyle(imageFillStyle) {
-    this.imageFillStyle = imageFillStyle;
-  }
-
   resize(width, height) {
     this.canvas.width = width * devicePixelRatio;
     this.canvas.height = height * devicePixelRatio;
@@ -231,34 +261,60 @@ const CanvasObject = class {
     this.canvasSize.set(width, height);
   }
 
+  setTool(tool) {
+    this.tool = tool;
+  }
+
+  setImageFillStyle(imageFillStyle) {
+    this.imageFillStyle = imageFillStyle;
+  }
+
   setImage(imageName, image) {
     this.imageName = imageName;
     this.image = image;
     this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
 
     const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
-    const u = new Vector2().scale(0.5, this.canvasSize);
-    const v = new Vector2().scale(0.5 * s, this.imageSize);
+    const u = this.canvasSize.clone().scale(0.5);
+    const v = this.imageSize.clone().scale(0.5 * s);
     u.sub(v);
     this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
   }
 
   mouseDown(ev) {
     this.mouse = new Point2(ev.offsetX, ev.offsetY);
+    if (this.tool === "select") {
+      const A = this.transform.clone().invert();
+      const u = new Point2(this.mouse);
+      A.transform(u).round().clamp(0, this.imageSize);
+      this.rubberBandStart = u;
+    }
   }
 
   mouseMove(ev) {
-    if (this.mouse) {
-      const { offsetX: x, offsetY: y } = ev;
-      const u = new Vector2(x, y).sub(this.mouse);
-      this.transform.m13 += u.x;
-      this.transform.m23 += u.y;
-      this.mouse.set(x, y);
+    if (this.tool === "normal") {
+      if (this.mouse) {
+        const { offsetX: x, offsetY: y } = ev;
+        const u = new Vector2(x, y).sub(this.mouse);
+        this.transform.m13 += u.x;
+        this.transform.m23 += u.y;
+        this.mouse.set(x, y);
+      }
+    } else if (this.tool === "select") {
+      if (this.rubberBandStart) {
+        const u = this.rubberBandStart;
+        const A = this.transform.clone().invert();
+        const v = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(v).round().clamp(0, this.imageSize);
+        this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
+        this.rubberBand[1].sub(v, u).absolute();
+      }
     }
   }
 
   mouseUp(ev) {
     this.mouse = undefined;
+    this.rubberBandStart = undefined;
   }
 
   wheel(ev) {
@@ -288,6 +344,13 @@ const CanvasObject = class {
       context.fillStyle = this.imageFillStyle;
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
       context.drawImage(this.image, 0, 0);
+    }
+
+    if (this.rubberBand) {
+      const [ u, s ] = this.rubberBand;
+      context.lineWidth = 1 / devicePixelRatio / m11;
+      context.strokeStyle = "#F00";
+      context.strokeRect(u.x, u.y, s.x, s.y);
     }
   }
 };
