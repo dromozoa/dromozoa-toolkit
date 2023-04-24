@@ -23,10 +23,6 @@ const requestAnimationFrame = () => new Promise(resolve => {
   return globalThis.requestAnimationFrame(resolve);
 });
 
-const setTimeout = (delay, ...params) => new Promise(resolve => {
-  return globalThis.setTimeout(resolve, delay, ...params);
-});
-
 const numberToCssRegex = /\.?0*$/;
 const numberToCss = (v, unit = "px") => {
   if (Math.abs(v) < 0.00005) {
@@ -83,8 +79,17 @@ const Tuple2 = class {
   }
 };
 
-const Point2 = class extends Tuple2 {};
-const Vector2 = class extends Tuple2 {};
+const Point2 = class extends Tuple2 {
+  get z() {
+    return 1;
+  }
+};
+
+const Vector2 = class extends Tuple2 {
+  get z() {
+    return 0;
+  }
+};
 
 //-------------------------------------------------------------------------
 
@@ -163,8 +168,7 @@ const Matrix3 = class {
     if (B === undefined) {
       B = A;
     }
-    const { x, y } = A;
-    const z = A instanceof Point2 ? 1 : 0;
+    const { x, y, z } = A;
     return B.set(
       this.m11 * x + this.m12 * y + this.m13 * z,
       this.m21 * x + this.m22 * y + this.m23 * z,
