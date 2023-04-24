@@ -195,7 +195,7 @@ const CanvasObject = class {
     this.canvas = undefined;
     this.canvasSize = new Vector2();
     this.tool = undefined;
-    this.imageFillColor = undefined;
+    this.imageFillStyle = undefined;
     this.imageName = undefined;
     this.image = undefined;
     this.imageSize = new Vector2();
@@ -215,8 +215,8 @@ const CanvasObject = class {
     this.tool = tool;
   }
 
-  setImageFillColor(imageFillColor) {
-    this.imageFillColor = imageFillColor;
+  setImageFillStyle(imageFillStyle) {
+    this.imageFillStyle = imageFillStyle;
   }
 
   resize(width, height) {
@@ -281,7 +281,7 @@ const CanvasObject = class {
     context.transform(m11, m21, m21, m22, dx, dy);
 
     if (this.image) {
-      context.fillStyle = this.imageFillColor;
+      context.fillStyle = this.imageFillStyle;
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
       context.drawImage(this.image, 0, 0);
     }
@@ -347,7 +347,7 @@ const guiObject = {
   fpsMin: 0,
   fpsMax: 0,
   tool: "normal",
-  imageFillColor: "#999999",
+  imageFillStyle: "#999999",
   imageName: "",
   imageWidth: 0,
   imageHeight: 0,
@@ -394,13 +394,13 @@ const initialize = () => {
   gui.add(guiObject, "fpsMin").name("最小FPS");
   gui.add(guiObject, "fpsMax").name("最大FPS");
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
-  gui.addColor(guiObject, "imageFillColor").name("画像背景色").onChange(v => canvasObject.setImageFillColor(v));
+  gui.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
   gui.add(guiObject, "imageName").name("画像ファイル名");
   gui.add(guiObject, "imageWidth").name("画像幅 [px]");
   gui.add(guiObject, "imageHeight").name("画像高さ [px]");
 
   canvasObject.setTool(guiObject.tool);
-  canvasObject.setImageFillColor(guiObject.imageFillColor);
+  canvasObject.setImageFillStyle(guiObject.imageFillStyle);
 };
 
 const resize = () => {
