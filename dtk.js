@@ -38,6 +38,54 @@ const numberToCss = (v, unit = "px") => {
 
 //-------------------------------------------------------------------------
 
+const Vector3 = class {
+  constructor(...params) {
+    this.set(...params);
+  }
+
+  clone() {
+    return new Vector3(this);
+  }
+
+  set(A, y, z) {
+    if (A === undefined) {
+      return this.set(0, 0, 0);
+    } else if (y === undefined) {
+      return this.set(A.x, A.y, A.z);
+    } else {
+      this.x = A;
+      this.y = y;
+      this.z = z;
+      return this;
+    }
+  }
+
+  add(A, B) {
+    if (B === undefined) {
+      B = A;
+      A = this;
+    }
+    return this.set(A.x + B.x, A.y + B.y, A.z + B.z);
+  }
+
+  sub(A, B) {
+    if (B === undefined) {
+      B = A;
+      A = this;
+    }
+    return this.set(A.x - B.x, A.y - B.y, A.z - B.z);
+  }
+
+  scale(s, A) {
+    if (A === undefined) {
+      A = this;
+    }
+    return this.set(s * A.x, s * A.y, s * A.z);
+  }
+}
+
+//-------------------------------------------------------------------------
+
 const Matrix3 = class {
   constructor(...params) {
     this.set(...params);
@@ -51,11 +99,9 @@ const Matrix3 = class {
     if (A === undefined) {
       return this.set(0, 0, 0, 0, 0, 0, 0, 0, 0);
     } else if (m12 === undefined) {
-      const { m11, m12, m13, m21, m22, m23, m31, m32, m33 } = A;
-      return this.set(m11, m12, m13, m21, m22, m23, m31, m32, m33);
+      return this.set(A.m11, A.m12, A.m13, A.m21, A.m22, A.m23, A.m31, A.m32, A.m33);
     } else {
-      const m11 = A;
-      this.m11 = m11; this.m12 = m12; this.m13 = m13;
+      this.m11 = A;   this.m12 = m12; this.m13 = m13;
       this.m21 = m21; this.m22 = m22; this.m23 = m23;
       this.m31 = m31; this.m32 = m32; this.m33 = m33;
       return this;
@@ -66,7 +112,10 @@ const Matrix3 = class {
     return this.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
   }
 
-  invert(A = this) {
+  invert(A) {
+    if (A === undefined) {
+      A = this;
+    }
     const { m11, m12, m13, m21, m22, m23, m31, m32, m33 } = A;
     const a = m22 * m33 - m23 * m32;
     const b = m23 * m31 - m21 * m33;
@@ -106,6 +155,17 @@ const Matrix3 = class {
       a31 * b11 + a32 * b21 + a33 * b31,
       a31 * b12 + a32 * b22 + a33 * b32,
       a31 * b13 + a32 * b23 + a33 * b33);
+  }
+
+  transform(A, B) {
+    if (B === undefined) {
+      B = A;
+    }
+    const { x, y, z } = A;
+    return B.set(
+      this.m11 * x + this.m12 * y + this.m13 * z,
+      this.m21 * x + this.m22 * y + this.m23 * z,
+      this.m31 * x + this.m32 * y + this.m33 * z);
   }
 };
 
@@ -162,9 +222,14 @@ const CanvasObject = class {
     const w = this.image.naturalWidth;
     const h = this.image.naturalHeight;
     const s = Math.min(cw / w, ch / h, 1);
-    const x = (cw - w * s) * 0.5;
-    const y = (ch - h * s) * 0.5;
-    this.transform.set(s, 0, x, 0, s, y, 0, 0, 1);
+    // this.transform.set(s, 0, 0, 0, s, 0, 0, 0, 1);
+
+    const u = new Vector3(cw, ch, 0);
+    const v = new Vector3(w, h, 0).scale(s);
+    u.sub(v).scale(0.5);
+    // const x = (cw - w * s) * 0.5;
+    // const y = (ch - h * s) * 0.5;
+    this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
   }
 
   mouseDown(ev) {
