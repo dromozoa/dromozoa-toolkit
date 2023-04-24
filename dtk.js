@@ -241,6 +241,7 @@ const CanvasObject = class {
     this.imageSize = new Vector2();
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
+    this.rubberBandStyle = undefined;
     this.rubberBandStart = undefined;
     this.rubberBand = [ new Point2(), new Vector2() ];
   }
@@ -279,6 +280,20 @@ const CanvasObject = class {
     const v = this.imageSize.clone().scale(0.5 * s);
     u.sub(v);
     this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
+
+    guiObject.imageName = canvasObject.imageName;
+    guiObject.imageWidth = canvasObject.imageSize.x;
+    guiObject.imageHeight = canvasObject.imageSize.y;
+    updateGui();
+  }
+
+  setRubberBandStyle(rubberBandStyle) {
+    this.rubberBandStyle = rubberBandStyle;
+  }
+
+  setRubberBand() {
+    this.rubberBand[0].set(guiObject.rubberBandX, guiObject.rubberBandY);
+    this.rubberBand[1].set(guiObject.rubberBandWidth, guiObject.rubberBandHeight);
   }
 
   mouseDown(ev) {
@@ -308,6 +323,12 @@ const CanvasObject = class {
         A.transform(v).round().clamp(0, this.imageSize);
         this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
         this.rubberBand[1].sub(v, u).absolute();
+
+        guiObject.rubberBandX = this.rubberBand[0].x;
+        guiObject.rubberBandY = this.rubberBand[0].y;
+        guiObject.rubberBandWidth = this.rubberBand[1].x;
+        guiObject.rubberBandHeight = this.rubberBand[1].y;
+        updateGui();
       }
     }
   }
@@ -343,14 +364,22 @@ const CanvasObject = class {
     if (this.image) {
       context.fillStyle = this.imageFillStyle;
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
+      context.imageSmoothingEnabled = false;
       context.drawImage(this.image, 0, 0);
     }
 
     if (this.rubberBand) {
       const [ u, s ] = this.rubberBand;
       context.lineWidth = 1 / devicePixelRatio / m11;
-      context.strokeStyle = "#F00";
-      context.strokeRect(u.x, u.y, s.x, s.y);
+      context.strokeStyle = this.rubberBandStyle;
+
+      context.beginPath();
+      context.rect(u.x, u.y, s.x, s.y);
+      context.moveTo(u.x, u.y);
+      context.lineTo(u.x + s.x, u.y + s.y);
+      context.moveTo(u.x, u.y + s.y);
+      context.lineTo(u.x + s.x, u.y);
+      context.stroke();
     }
   }
 };
@@ -418,6 +447,11 @@ const guiObject = {
   imageName: "",
   imageWidth: 0,
   imageHeight: 0,
+  rubberBandStyle: "#FF0000",
+  rubberBandX: 0,
+  rubberBandY: 0,
+  rubberBandWidth: 0,
+  rubberBandHeight: 0,
 };
 
 let gui;
@@ -438,10 +472,6 @@ const initialize = () => {
         const file = ev.dataTransfer.files.item(i);
         try {
           canvasObject.setImage(file.name, await blobToImage(file));
-          guiObject.imageName = canvasObject.imageName;
-          guiObject.imageWidth = canvasObject.imageSize.x;
-          guiObject.imageHeight = canvasObject.imageSize.y;
-          updateGui();
         } catch (e) {
           console.error("cannot read " + file.name, e);
         }
@@ -463,11 +493,17 @@ const initialize = () => {
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
   gui.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
   gui.add(guiObject, "imageName").name("画像ファイル名");
-  gui.add(guiObject, "imageWidth").name("画像幅 [px]");
-  gui.add(guiObject, "imageHeight").name("画像高さ [px]");
+  gui.add(guiObject, "imageWidth").name("画像幅");
+  gui.add(guiObject, "imageHeight").name("画像高さ");
+  gui.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
+  gui.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
+  gui.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
+  gui.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
+  gui.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
 
   canvasObject.setTool(guiObject.tool);
   canvasObject.setImageFillStyle(guiObject.imageFillStyle);
+  canvasObject.setRubberBandStyle(guiObject.rubberBandStyle);
 };
 
 const resize = () => {
