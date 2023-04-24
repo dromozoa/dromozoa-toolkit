@@ -296,6 +296,14 @@ const CanvasObject = class {
     this.rubberBand[1].set(guiObject.rubberBandWidth, guiObject.rubberBandHeight);
   }
 
+  updateGuiRubberBand() {
+    guiObject.rubberBandX = this.rubberBand[0].x;
+    guiObject.rubberBandY = this.rubberBand[0].y;
+    guiObject.rubberBandWidth = this.rubberBand[1].x;
+    guiObject.rubberBandHeight = this.rubberBand[1].y;
+    updateGui();
+  }
+
   mouseDown(ev) {
     this.mouse = new Point2(ev.offsetX, ev.offsetY);
     if (this.tool === "select") {
@@ -303,6 +311,9 @@ const CanvasObject = class {
       const u = new Point2(this.mouse);
       A.transform(u).round().clamp(0, this.imageSize);
       this.rubberBandStart = u;
+      this.rubberBand[0].set(0, 0);
+      this.rubberBand[1].set(0, 0);
+      this.updateGuiRubberBand();
     }
   }
 
@@ -323,12 +334,7 @@ const CanvasObject = class {
         A.transform(v).round().clamp(0, this.imageSize);
         this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
         this.rubberBand[1].sub(v, u).absolute();
-
-        guiObject.rubberBandX = this.rubberBand[0].x;
-        guiObject.rubberBandY = this.rubberBand[0].y;
-        guiObject.rubberBandWidth = this.rubberBand[1].x;
-        guiObject.rubberBandHeight = this.rubberBand[1].y;
-        updateGui();
+        this.updateGuiRubberBand();
       }
     }
   }
