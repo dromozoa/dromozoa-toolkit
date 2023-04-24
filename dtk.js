@@ -270,6 +270,8 @@ const CanvasObject = class {
     context.transform(m11, m21, m21, m22, dx, dy);
 
     if (this.image) {
+      context.fillStyle = "#999";
+      context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
       context.drawImage(this.image, 0, 0);
     }
   }
