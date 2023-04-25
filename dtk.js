@@ -328,9 +328,21 @@ const CanvasObject = class {
 
   setAspectRatio() {
     if (guiObject.aspectConstraint) {
-      this.aspectRatio = guiObject.width / guiObject.height;
+      this.aspectRatio = guiObject.aspectWidth / guiObject.aspectHeight;
     } else {
       this.aspectRatio = undefined;
+    }
+  }
+
+  updateAspectRatio(u) {
+    if (this.aspectRatio) {
+      const v = u.clone().absolute();
+      const a = v.clone().scale(this.aspectRatio);
+      if (a.y < v.x) {
+        u.x *= a.y / v.x;
+      } else if (a.x < v.y) {
+        u.y *= a.x / v.y;
+      }
     }
   }
 
@@ -439,9 +451,10 @@ const CanvasObject = class {
         const A = this.transform.clone().invert();
         const v = new Point2(ev.offsetX, ev.offsetY);
         A.transform(v).round().clamp(0, this.imageSize);
-
+        const d = new Vector2().sub(v, u);
+        this.updateAspectRatio(d);
         this.rubberBand[0].set(u);
-        this.rubberBand[1].sub(v, u);
+        this.rubberBand[1].set(d);
         this.updateRubberBand();
       }
     } else if (this.tool === "modify") {
