@@ -21,9 +21,10 @@
 - [ ] フォントの作成
 - [ ] フォントの解析
 - [ ] Lua 5.4の新しいのをチェックする
-- [ ] dotfilesのテキスト折り返しを復活させる
-- [ ] dotfilesのなかにvimのnetrwhistができちゃう
+- [x] dotfilesのテキスト折り返しを復活させる
+- [x] dotfilesのなかにvimのnetrwhistができちゃう
 - [ ] Twitterのダウンロード
+  - これはアプリカードの実験のことかな？
 - [ ] copyrightの一括更新
   - URLをhttpsにする
   - 空白ふたつをひとつにする
