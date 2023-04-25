@@ -265,6 +265,7 @@ const CanvasObject = class {
     this.rubberBand = [ new Point2(), new Vector2() ];
     this.modifier = undefined;
     this.modifierStart = undefined;
+    this.aspectRatio = undefined;
   }
 
   initialize() {
@@ -325,11 +326,20 @@ const CanvasObject = class {
     this.rubberBand[1].set(guiObject.rubberBandWidth, guiObject.rubberBandHeight);
   }
 
-  updateGuiRubberBand() {
-    guiObject.rubberBandX = this.rubberBand[0].x;
-    guiObject.rubberBandY = this.rubberBand[0].y;
-    guiObject.rubberBandWidth = this.rubberBand[1].x;
-    guiObject.rubberBandHeight = this.rubberBand[1].y;
+  setAspectRatio() {
+    if (guiObject.aspectConstraint) {
+      this.aspectRatio = guiObject.width / guiObject.height;
+    } else {
+      this.aspectRatio = undefined;
+    }
+  }
+
+  updateRubberBand() {
+    const [ p, s ] = this.rubberBand;
+    guiObject.rubberBandX = p.x;
+    guiObject.rubberBandY = p.y;
+    guiObject.rubberBandWidth = s.x;
+    guiObject.rubberBandHeight = s.y;
     updateGui();
   }
 
@@ -391,7 +401,7 @@ const CanvasObject = class {
       this.rubberBandStart = u;
       this.rubberBand[0].set(0, 0);
       this.rubberBand[1].set(0, 0);
-      this.updateGuiRubberBand();
+      this.updateRubberBand();
     } else if (this.tool === "modify") {
       const modifier = this.getModifier(ev);
       this.modifier = modifier.modifier;
@@ -422,7 +432,7 @@ const CanvasObject = class {
         A.transform(v).round().clamp(0, this.imageSize);
         this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
         this.rubberBand[1].sub(v, u).absolute();
-        this.updateGuiRubberBand();
+        this.updateRubberBand();
       }
     } else if (this.tool === "modify") {
       if (this.modifier) {
@@ -472,7 +482,7 @@ const CanvasObject = class {
         }
         S.absolute();
 
-        this.updateGuiRubberBand();
+        this.updateRubberBand();
       } else {
         this.canvas.style.cursor = this.getModifier(ev).cursor;
       }
@@ -487,7 +497,7 @@ const CanvasObject = class {
       p.clamp(0, this.imageSize);
       q.clamp(0, this.imageSize);
       s.sub(q, p);
-      this.updateGuiRubberBand();
+      this.updateRubberBand();
     }
 
     this.mouse = undefined;
@@ -728,9 +738,9 @@ const initialize = () => {
     folder.add(guiObject, "rubberBandY").name("矩形領域位置Y").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandWidth").name("矩形領域の幅").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandHeight").name("矩形領域の高さ").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "aspectConstraint").name("縦横比固定");
-    folder.add(guiObject, "aspectWidth").name("縦横比の幅");
-    folder.add(guiObject, "aspectHeight").name("縦横比の高さ");
+    folder.add(guiObject, "aspectConstraint").name("縦横比固定").onChange(v => canvasObject.setAspectRatio());
+    folder.add(guiObject, "aspectWidth").name("縦横比の幅").onChange(v => canvasObject.setAspectRatio());
+    folder.add(guiObject, "aspectHeight").name("縦横比の高さ").onChange(v => canvasObject.setAspectRatio());
   }
 
   {
