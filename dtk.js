@@ -334,14 +334,16 @@ const CanvasObject = class {
     }
   }
 
-  updateAspectRatio(u) {
+  updateAspectRatio() {
     if (this.aspectRatio) {
-      const v = u.clone().absolute();
-      const a = v.clone().scale(this.aspectRatio);
-      if (a.y < v.x) {
-        u.x *= a.y / v.x;
-      } else if (a.x < v.y) {
-        u.y *= a.x / v.y;
+      const s = this.rubberBand[1];
+      const t = s.clone().absolute();
+      const w = Math.round(t.y * this.aspectRatio);
+      const h = Math.round(t.x / this.aspectRatio);
+      if (w < t.x) {
+        s.x = Math.sign(s.x) * w;
+      } else if (h < t.y) {
+        s.y = Math.sign(s.y) * h;
       }
     }
   }
@@ -451,10 +453,9 @@ const CanvasObject = class {
         const A = this.transform.clone().invert();
         const v = new Point2(ev.offsetX, ev.offsetY);
         A.transform(v).round().clamp(0, this.imageSize);
-        const d = new Vector2().sub(v, u);
-        this.updateAspectRatio(d);
         this.rubberBand[0].set(u);
-        this.rubberBand[1].set(d);
+        this.rubberBand[1].sub(v, u);
+        this.updateAspectRatio();
         this.updateRubberBand();
       }
     } else if (this.tool === "modify") {
@@ -470,31 +471,33 @@ const CanvasObject = class {
           P.add(q, u);
           S.set(s);
         } else if (this.modifier === "topLeft") {
-          P.add(q, u);
-          S.sub(s, u);
+          P.add(q, s);
+          S.sub(u, s);
+          this.updateAspectRatio();
         } else if (this.modifier === "topRight") {
-          P.add(q, new Vector2(0, u.y));
-          S.add(s, new Vector2(u.x, -u.y));
+          P.set(q.x, q.y + s.y);
+          S.set(u.x + s.x, u.y - s.y);
+          this.updateAspectRatio();
         } else if (this.modifier === "bottomRight") {
           P.set(q);
-          S.add(s, u);
+          S.add(u, s);
+          this.updateAspectRatio();
         } else if (this.modifier === "bottomLeft") {
-          P.add(q, new Vector2(u.x, 0));
-          S.add(s, new Vector2(-u.x, u.y));
+          P.set(q.x + s.x, q.y);
+          S.set(u.x - s.x, u.y + s.y);
+          this.updateAspectRatio();
         } else if (this.modifier === "top") {
-          const d = new Vector2(0, u.y);
-          P.add(q, d);
-          S.sub(s, d);
+          P.set(q.x, q.y + s.y);
+          S.set(s.x, u.y - s.y);
         } else if (this.modifier === "bottom") {
           P.set(q);
-          S.add(s, new Vector2(0, u.y));
+          S.set(s.x, u.y + s.y);
         } else if (this.modifier === "left") {
-          const d = new Vector2(u.x, 0);
-          P.add(q, d);
-          S.sub(s, d);
+          P.set(q.x + s.x, q.y);
+          S.set(u.x - s.x, s.y);
         } else if (this.modifier === "right") {
           P.set(q);
-          S.add(s, new Vector2(u.x, 0));
+          S.set(u.x + s.x, s.y);
         }
         this.updateRubberBand();
       } else {
