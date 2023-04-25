@@ -2,6 +2,15 @@
   - dromozoa-utf8をインストール
   - Vimで選択して、選択結果に`!dromozoa-markdown-table`する
 - [x] 画像の選択だけを行うツール
+- [x] Unicodeのつくりなおし
+- [x] @dromozoa.comのメール
+  - honoka,nozomi経由で@me.comに転送
+- [x] VimのJavaScriptシンタックスの修正
+  - 引数の先頭の正規表現に色がつかない
+  - javaScriptParensが邪魔してる
+- [x] カレンダーの更新
+- [x] 選択領域の制約条件
+
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
   - makeよりすこしかしこいくらい
@@ -11,14 +20,6 @@
 - [ ] 画像最適化
 - [ ] フォントの作成
 - [ ] フォントの解析
-- [x] Unicodeのつくりなおし
-- [x] @dromozoa.comのメール
-  - honoka,nozomi経由で@me.comに転送
-- [x] VimのJavaScriptシンタックスの修正
-  - 引数の先頭の正規表現に色がつかない
-  - javaScriptParensが邪魔してる
-- [x] カレンダーの更新
 - [ ] Lua 5.4の新しいのをチェックする
-- [x] 選択領域の制約条件
 - [ ] dotfilesのテキスト折り返しを復活させる
 - [ ] dotfilesのなかにvimのnetrwhistができちゃう
