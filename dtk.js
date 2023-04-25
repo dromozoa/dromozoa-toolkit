@@ -269,11 +269,13 @@ const CanvasObject = class {
 
   initialize() {
     this.canvas = document.createElement("canvas");
+    this.canvas.classList.add("dtk-canvas");
     this.canvas.setAttribute("tabindex", "-1");
     this.canvas.addEventListener("mousedown", ev => this.mouseDown(ev));
     this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
     this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
+    return this.canvas;
   }
 
   focus() {
@@ -687,10 +689,7 @@ const initialize = () => {
       }
     }
   });
-
-  canvasObject.initialize();
-  canvasObject.canvas.classList.add("dtk-canvas");
-  rootNode.append(canvasObject.canvas);
+  rootNode.append(canvasObject.initialize());
 
   const guiCommands = {
     focusCanvas: () => canvasObject.focus(),
