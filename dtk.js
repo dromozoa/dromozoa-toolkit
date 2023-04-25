@@ -319,6 +319,54 @@ const CanvasObject = class {
     updateGui();
   }
 
+  getModifier(ev) {
+    const R = 8 / this.transform.m11;
+    const R2 = R * R;
+
+    const [ p, s ] = this.rubberBand;
+    if (s.lengthSquared() > 0) {
+      const A = this.transform.clone().invert();
+      const u = new Point2(ev.offsetX, ev.offsetY);
+      A.transform(u);
+
+      const q = p.clone().add(s);
+      const c = p.clone().add(q).scale(0.5);
+
+      if (c.distanceSquared(u) <= R2) {
+        return { modifier: "move", cursor: "move" };
+      }
+      if (p.distanceSquared(u) <= R2) {
+        return { modifier: "topLeft", cursor: "nwse-resize" };
+      }
+      if (new Point2(q.x, p.y).distanceSquared(u) <= R2) {
+        return { modifier: "topRight", cursor: "nesw-resize" };
+      }
+      if (new Point2(q.x, q.y).distanceSquared(u) <= R2) {
+        return { modifier: "bottomRight", cursor: "nwse-resize" };
+      }
+      if (new Point2(p.x, q.y).distanceSquared(u) <= R2) {
+        return { modifier: "bottomLeft", cursor: "nesw-resize" };
+      }
+      if (p.x <= u.x && u.x <= q.x) {
+        if (Math.abs(u.y - p.y) <= R) {
+          return { modifier: "top", cursor: "ns-resize" };
+        }
+        if (Math.abs(u.y - q.y) <= R) {
+          return { modifier: "bottom", cursor: "ns-resize" };
+        }
+      }
+      if (p.y <= u.y && u.y <= q.y) {
+        if (Math.abs(u.x - p.x) <= R) {
+          return { modifier: "left", cursor: "ew-resize" };
+        }
+        if (Math.abs(u.x - q.x) <= R) {
+          return { modifier: "right", cursor: "ew-resize" };
+        }
+      }
+    }
+    return { modifier: undefined, cursor: "default" };
+  }
+
   mouseDown(ev) {
     if (this.tool === "normal") {
       this.mouse = new Point2(ev.offsetX, ev.offsetY);
@@ -330,6 +378,7 @@ const CanvasObject = class {
       this.rubberBand[0].set(0, 0);
       this.rubberBand[1].set(0, 0);
       this.updateGuiRubberBand();
+    } else if (this.tool === "modify") {
     }
   }
 
@@ -353,23 +402,7 @@ const CanvasObject = class {
         this.updateGuiRubberBand();
       }
     } else if (this.tool === "modify") {
-      const R2 = 16;
-
-      let cursor = "default";
-
-      const [ p, s ] = this.rubberBand;
-      if (s.lengthSquared() > 0) {
-        const A = this.transform.clone().invert();
-        const u = new Point2(ev.offsetX, ev.offsetY);
-        A.transform(u).round();
-
-        const q = p.clone().add(s.clone().scale(0.5));
-        if (q.distanceSquared(u) <= R2) {
-          cursor = "move";
-        }
-      }
-
-      this.canvas.style.cursor = cursor;
+      this.canvas.style.cursor = this.getModifier(ev).cursor;
     }
   }
 
