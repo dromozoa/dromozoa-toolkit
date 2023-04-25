@@ -336,6 +336,15 @@ const CanvasObject = class {
 
   updateRubberBand() {
     const [ p, s ] = this.rubberBand;
+
+    if (s.y < 0) {
+      p.y += s.y;
+    }
+    if (s.x < 0) {
+      p.x += s.x;
+    }
+    s.absolute();
+
     guiObject.rubberBandX = p.x;
     guiObject.rubberBandY = p.y;
     guiObject.rubberBandWidth = s.x;
@@ -430,8 +439,9 @@ const CanvasObject = class {
         const A = this.transform.clone().invert();
         const v = new Point2(ev.offsetX, ev.offsetY);
         A.transform(v).round().clamp(0, this.imageSize);
-        this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
-        this.rubberBand[1].sub(v, u).absolute();
+
+        this.rubberBand[0].set(u);
+        this.rubberBand[1].sub(v, u);
         this.updateRubberBand();
       }
     } else if (this.tool === "modify") {
@@ -473,15 +483,6 @@ const CanvasObject = class {
           P.set(q);
           S.add(s, new Vector2(u.x, 0));
         }
-
-        if (S.y < 0) {
-          P.y += S.y;
-        }
-        if (S.x < 0) {
-          P.x += S.x;
-        }
-        S.absolute();
-
         this.updateRubberBand();
       } else {
         this.canvas.style.cursor = this.getModifier(ev).cursor;
