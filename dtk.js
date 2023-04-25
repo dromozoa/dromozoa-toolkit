@@ -269,10 +269,15 @@ const CanvasObject = class {
 
   initialize() {
     this.canvas = document.createElement("canvas");
+    this.canvas.setAttribute("tabindex", "-1");
     this.canvas.addEventListener("mousedown", ev => this.mouseDown(ev));
     this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
     this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
+  }
+
+  focus() {
+    this.canvas.focus();
   }
 
   resize(width, height) {
@@ -285,6 +290,7 @@ const CanvasObject = class {
 
   setTool(tool) {
     this.tool = tool;
+    this.canvas.style.cursor = "default";
   }
 
   setImageFillStyle(imageFillStyle) {
@@ -619,9 +625,15 @@ const FrameRate = class {
 const canvasObject = new CanvasObject();
 
 const toolLabels = {
-  "通常": "normal",
-  "選択": "select",
-  "変形": "modify",
+  "通常 (1)": "normal",
+  "選択 (2)": "select",
+  "変形 (3)": "modify",
+};
+
+const toolKeyCodes = {
+  Digit1: "normal",
+  Digit2: "select",
+  Digit3: "modify",
 };
 
 const guiObject = {
@@ -638,6 +650,9 @@ const guiObject = {
   rubberBandY: 0,
   rubberBandWidth: 0,
   rubberBandHeight: 0,
+  aspectConstraint: false,
+  aspectWidth: 16,
+  aspectHeight: 9,
 };
 
 let gui;
@@ -677,11 +692,20 @@ const initialize = () => {
   canvasObject.canvas.classList.add("dtk-canvas");
   rootNode.append(canvasObject.canvas);
 
+  const guiCommands = {
+    focusCanvas: () => canvasObject.focus(),
+    saveImageSelection: () => saveImage("selection"),
+    saveImageInside: () => saveImage("inside"),
+    saveImageOutside: () => saveImage("outside"),
+    saveImageRectangle: () => saveImage("rectangle"),
+  };
+
   gui = new GUI({
     container: document.querySelector(".dtk-gui"),
   });
 
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
+  gui.add(guiCommands, "focusCanvas").name("キャンバスにフォーカス");
 
   {
     const folder = gui.addFolder("FPS");
@@ -705,26 +729,31 @@ const initialize = () => {
     folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "aspectConstraint").name("縦横比固定");
+    folder.add(guiObject, "aspectWidth").name("縦横比の幅");
+    folder.add(guiObject, "aspectHeight").name("縦横比の高さ");
   }
-
-  const commands = {
-    saveImageSelection: () => saveImage("selection"),
-    saveImageInside: () => saveImage("inside"),
-    saveImageOutside: () => saveImage("outside"),
-    saveImageRectangle: () => saveImage("rectangle"),
-  };
 
   {
     const folder = gui.addFolder("画像保存");
-    folder.add(commands, "saveImageSelection").name("矩形領域だけを保存");
-    folder.add(commands, "saveImageInside").name("矩形領域の内側を保存");
-    folder.add(commands, "saveImageOutside").name("矩形領域の外側を保存");
-    folder.add(commands, "saveImageRectangle").name("矩形領域を単色で保存");
+    folder.add(guiCommands, "saveImageSelection").name("矩形領域だけを保存");
+    folder.add(guiCommands, "saveImageInside").name("矩形領域の内側を保存");
+    folder.add(guiCommands, "saveImageOutside").name("矩形領域の外側を保存");
+    folder.add(guiCommands, "saveImageRectangle").name("矩形領域を単色で保存");
   }
 
   canvasObject.setTool(guiObject.tool);
   canvasObject.setImageFillStyle(guiObject.imageFillStyle);
   canvasObject.setRubberBandStyle(guiObject.rubberBandStyle);
+};
+
+const keyDown = ev => {
+  const tool = toolKeyCodes[ev.code];
+  if (tool) {
+    ev.preventDefault();
+    guiObject.tool = tool;
+    canvasObject.setTool(tool);
+  }
 };
 
 const resize = () => {
@@ -742,6 +771,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initialize();
   resize();
 
+  addEventListener("keydown", keyDown);
   addEventListener("resize", resize);
 
   const frameRate = new FrameRate(60);
