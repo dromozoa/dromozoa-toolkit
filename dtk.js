@@ -245,6 +245,10 @@ const blobToImage = blob => new Promise((resolve, reject) => {
   image.src = url;
 });
 
+const canvasToBlob = (canvas, ...params) => new Promise(resolve => {
+  return canvas.toBlob(resolve, ...params);
+});
+
 const CanvasObject = class {
   constructor() {
     this.canvas = undefined;
@@ -254,6 +258,7 @@ const CanvasObject = class {
     this.imageName = undefined;
     this.image = undefined;
     this.imageSize = new Vector2();
+    this.imageCanvas = undefined;
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
     this.rubberBandStyle = undefined;
@@ -291,6 +296,7 @@ const CanvasObject = class {
     this.imageName = imageName;
     this.image = image;
     this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
+    this.imageCanvas = undefined;
 
     const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
     const u = this.canvasSize.clone().scale(0.5);
@@ -515,8 +521,8 @@ const CanvasObject = class {
       context.drawImage(this.image, 0, 0);
     }
 
-    if (this.rubberBand) {
-      const [ p, s ] = this.rubberBand;
+    const [ p, s ] = this.rubberBand;
+    if (s.lengthSquared() > 0) {
       context.lineWidth = 1 / m11;
       context.strokeStyle = this.rubberBandStyle;
 
@@ -528,6 +534,38 @@ const CanvasObject = class {
       context.lineTo(p.x + s.x, p.y);
       context.stroke();
     }
+  }
+
+  getImageCanvas() {
+    if (this.imageCanvas === undefined) {
+      if (this.image) {
+        this.imageCanvas = document.createElement("canvas");
+        this.imageCanvas.width = this.imageSize.x;
+        this.imageCanvas.height = this.imageSize.y;
+      }
+    }
+    return this.imageCanvas;
+  }
+
+
+  drawImageCanvas() {
+    const canvas = this.getImageCanvas();
+    const context = canvas.getContext("2d");
+    context.resetTransform();
+    context.clearRect(0, 0, this.imageSize.x, this.imageSize.y);
+
+    const [ p, s ] = this.rubberBand;
+    if (s.lengthSquared() > 0) {
+      context.save();
+      context.beginPath();
+      context.rect(p.x, p.y, s.x, s.y);
+      context.clip();
+      context.imageSmoothingEnabled = false;
+      context.drawImage(this.image, 0, 0);
+      context.restore();
+    }
+
+    return canvas;
   }
 };
 
@@ -636,12 +674,14 @@ const initialize = () => {
   });
 
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
+
   {
     const folder = gui.addFolder("FPS");
     folder.add(guiObject, "fps").name("最新FPS");
     folder.add(guiObject, "fpsMin").name("最小FPS");
     folder.add(guiObject, "fpsMax").name("最大FPS");
   }
+
   {
     const folder = gui.addFolder("画像");
     folder.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
@@ -649,6 +689,7 @@ const initialize = () => {
     folder.add(guiObject, "imageWidth").name("画像幅");
     folder.add(guiObject, "imageHeight").name("画像高さ");
   }
+
   {
     const folder = gui.addFolder("矩形選択");
     folder.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
@@ -656,6 +697,22 @@ const initialize = () => {
     folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+  }
+
+  const commands = {};
+  commands.saveSelection = async () => {
+    const blob = await canvasToBlob(canvasObject.drawImageCanvas());
+    const url = URL.createObjectURL(blob);
+    const node = document.createElement("a");
+    node.setAttribute("href", url);
+    node.setAttribute("download", "テスト.png");
+    node.dispatchEvent(new MouseEvent("click"));
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
+  {
+    const folder = gui.addFolder("入出力");
+    folder.add(commands, "saveSelection");
   }
 
   canvasObject.setTool(guiObject.tool);
