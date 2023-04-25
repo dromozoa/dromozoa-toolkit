@@ -265,14 +265,22 @@ const CanvasObject = class {
     this.rubberBand = [ new Point2(), new Vector2() ];
     this.modifier = undefined;
     this.modifierStart = undefined;
+    this.aspectRatio = undefined;
   }
 
   initialize() {
     this.canvas = document.createElement("canvas");
+    this.canvas.classList.add("dtk-canvas");
+    this.canvas.setAttribute("tabindex", "-1");
     this.canvas.addEventListener("mousedown", ev => this.mouseDown(ev));
     this.canvas.addEventListener("mousemove", ev => this.mouseMove(ev));
     this.canvas.addEventListener("mouseup", ev => this.mouseUp(ev));
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
+    return this.canvas;
+  }
+
+  focus() {
+    this.canvas.focus();
   }
 
   resize(width, height) {
@@ -285,6 +293,7 @@ const CanvasObject = class {
 
   setTool(tool) {
     this.tool = tool;
+    this.canvas.style.cursor = "default";
   }
 
   setImageFillStyle(imageFillStyle) {
@@ -317,11 +326,43 @@ const CanvasObject = class {
     this.rubberBand[1].set(guiObject.rubberBandWidth, guiObject.rubberBandHeight);
   }
 
-  updateGuiRubberBand() {
-    guiObject.rubberBandX = this.rubberBand[0].x;
-    guiObject.rubberBandY = this.rubberBand[0].y;
-    guiObject.rubberBandWidth = this.rubberBand[1].x;
-    guiObject.rubberBandHeight = this.rubberBand[1].y;
+  setAspectRatio() {
+    if (guiObject.aspectConstraint) {
+      this.aspectRatio = guiObject.aspectWidth / guiObject.aspectHeight;
+    } else {
+      this.aspectRatio = undefined;
+    }
+  }
+
+  updateAspectRatio() {
+    if (this.aspectRatio) {
+      const s = this.rubberBand[1];
+      const t = s.clone().absolute();
+      const w = Math.round(t.y * this.aspectRatio);
+      const h = Math.round(t.x / this.aspectRatio);
+      if (w < t.x) {
+        s.x = Math.sign(s.x) * w;
+      } else if (h < t.y) {
+        s.y = Math.sign(s.y) * h;
+      }
+    }
+  }
+
+  updateRubberBand() {
+    const [ p, s ] = this.rubberBand;
+
+    if (s.y < 0) {
+      p.y += s.y;
+    }
+    if (s.x < 0) {
+      p.x += s.x;
+    }
+    s.absolute();
+
+    guiObject.rubberBandX = p.x;
+    guiObject.rubberBandY = p.y;
+    guiObject.rubberBandWidth = s.x;
+    guiObject.rubberBandHeight = s.y;
     updateGui();
   }
 
@@ -383,7 +424,7 @@ const CanvasObject = class {
       this.rubberBandStart = u;
       this.rubberBand[0].set(0, 0);
       this.rubberBand[1].set(0, 0);
-      this.updateGuiRubberBand();
+      this.updateRubberBand();
     } else if (this.tool === "modify") {
       const modifier = this.getModifier(ev);
       this.modifier = modifier.modifier;
@@ -412,9 +453,10 @@ const CanvasObject = class {
         const A = this.transform.clone().invert();
         const v = new Point2(ev.offsetX, ev.offsetY);
         A.transform(v).round().clamp(0, this.imageSize);
-        this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
-        this.rubberBand[1].sub(v, u).absolute();
-        this.updateGuiRubberBand();
+        this.rubberBand[0].set(u);
+        this.rubberBand[1].sub(v, u);
+        this.updateAspectRatio();
+        this.updateRubberBand();
       }
     } else if (this.tool === "modify") {
       if (this.modifier) {
@@ -429,42 +471,35 @@ const CanvasObject = class {
           P.add(q, u);
           S.set(s);
         } else if (this.modifier === "topLeft") {
-          P.add(q, u);
-          S.sub(s, u);
+          P.add(q, s);
+          S.sub(u, s);
+          this.updateAspectRatio();
         } else if (this.modifier === "topRight") {
-          P.add(q, new Vector2(0, u.y));
-          S.add(s, new Vector2(u.x, -u.y));
+          P.set(q.x, q.y + s.y);
+          S.set(u.x + s.x, u.y - s.y);
+          this.updateAspectRatio();
         } else if (this.modifier === "bottomRight") {
           P.set(q);
-          S.add(s, u);
+          S.add(u, s);
+          this.updateAspectRatio();
         } else if (this.modifier === "bottomLeft") {
-          P.add(q, new Vector2(u.x, 0));
-          S.add(s, new Vector2(-u.x, u.y));
+          P.set(q.x + s.x, q.y);
+          S.set(u.x - s.x, u.y + s.y);
+          this.updateAspectRatio();
         } else if (this.modifier === "top") {
-          const d = new Vector2(0, u.y);
-          P.add(q, d);
-          S.sub(s, d);
+          P.set(q.x, q.y + s.y);
+          S.set(s.x, u.y - s.y);
         } else if (this.modifier === "bottom") {
           P.set(q);
-          S.add(s, new Vector2(0, u.y));
+          S.set(s.x, u.y + s.y);
         } else if (this.modifier === "left") {
-          const d = new Vector2(u.x, 0);
-          P.add(q, d);
-          S.sub(s, d);
+          P.set(q.x + s.x, q.y);
+          S.set(u.x - s.x, s.y);
         } else if (this.modifier === "right") {
           P.set(q);
-          S.add(s, new Vector2(u.x, 0));
+          S.set(u.x + s.x, s.y);
         }
-
-        if (S.y < 0) {
-          P.y += S.y;
-        }
-        if (S.x < 0) {
-          P.x += S.x;
-        }
-        S.absolute();
-
-        this.updateGuiRubberBand();
+        this.updateRubberBand();
       } else {
         this.canvas.style.cursor = this.getModifier(ev).cursor;
       }
@@ -479,7 +514,7 @@ const CanvasObject = class {
       p.clamp(0, this.imageSize);
       q.clamp(0, this.imageSize);
       s.sub(q, p);
-      this.updateGuiRubberBand();
+      this.updateRubberBand();
     }
 
     this.mouse = undefined;
@@ -619,9 +654,15 @@ const FrameRate = class {
 const canvasObject = new CanvasObject();
 
 const toolLabels = {
-  "通常": "normal",
-  "選択": "select",
-  "変形": "modify",
+  "通常 (1)": "normal",
+  "選択 (2)": "select",
+  "変形 (3)": "modify",
+};
+
+const toolKeyCodes = {
+  Digit1: "normal",
+  Digit2: "select",
+  Digit3: "modify",
 };
 
 const guiObject = {
@@ -638,6 +679,9 @@ const guiObject = {
   rubberBandY: 0,
   rubberBandWidth: 0,
   rubberBandHeight: 0,
+  aspectConstraint: false,
+  aspectWidth: 16,
+  aspectHeight: 9,
 };
 
 let gui;
@@ -672,16 +716,22 @@ const initialize = () => {
       }
     }
   });
+  rootNode.append(canvasObject.initialize());
 
-  canvasObject.initialize();
-  canvasObject.canvas.classList.add("dtk-canvas");
-  rootNode.append(canvasObject.canvas);
+  const guiCommands = {
+    focusCanvas: () => canvasObject.focus(),
+    saveImageSelection: () => saveImage("selection"),
+    saveImageInside: () => saveImage("inside"),
+    saveImageOutside: () => saveImage("outside"),
+    saveImageRectangle: () => saveImage("rectangle"),
+  };
 
   gui = new GUI({
     container: document.querySelector(".dtk-gui"),
   });
 
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
+  gui.add(guiCommands, "focusCanvas").name("キャンバスにフォーカス");
 
   {
     const folder = gui.addFolder("FPS");
@@ -699,32 +749,37 @@ const initialize = () => {
   }
 
   {
-    const folder = gui.addFolder("矩形選択");
-    folder.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
-    folder.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+    const folder = gui.addFolder("選択");
+    folder.addColor(guiObject, "rubberBandStyle").name("選択色").onChange(v => canvasObject.setRubberBandStyle(v));
+    folder.add(guiObject, "rubberBandX").name("矩形領域位置X").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandY").name("矩形領域位置Y").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandWidth").name("矩形領域の幅").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandHeight").name("矩形領域の高さ").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "aspectConstraint").name("縦横比固定").onChange(v => canvasObject.setAspectRatio());
+    folder.add(guiObject, "aspectWidth").name("縦横比の幅").onChange(v => canvasObject.setAspectRatio());
+    folder.add(guiObject, "aspectHeight").name("縦横比の高さ").onChange(v => canvasObject.setAspectRatio());
   }
-
-  const commands = {
-    saveImageSelection: () => saveImage("selection"),
-    saveImageInside: () => saveImage("inside"),
-    saveImageOutside: () => saveImage("outside"),
-    saveImageRectangle: () => saveImage("rectangle"),
-  };
 
   {
     const folder = gui.addFolder("画像保存");
-    folder.add(commands, "saveImageSelection").name("矩形領域だけを保存");
-    folder.add(commands, "saveImageInside").name("矩形領域の内側を保存");
-    folder.add(commands, "saveImageOutside").name("矩形領域の外側を保存");
-    folder.add(commands, "saveImageRectangle").name("矩形領域を単色で保存");
+    folder.add(guiCommands, "saveImageSelection").name("矩形領域だけを保存");
+    folder.add(guiCommands, "saveImageInside").name("矩形領域の内側を保存");
+    folder.add(guiCommands, "saveImageOutside").name("矩形領域の外側を保存");
+    folder.add(guiCommands, "saveImageRectangle").name("矩形領域を単色で保存");
   }
 
   canvasObject.setTool(guiObject.tool);
   canvasObject.setImageFillStyle(guiObject.imageFillStyle);
   canvasObject.setRubberBandStyle(guiObject.rubberBandStyle);
+};
+
+const keyDown = ev => {
+  const tool = toolKeyCodes[ev.code];
+  if (tool) {
+    ev.preventDefault();
+    guiObject.tool = tool;
+    canvasObject.setTool(tool);
+  }
 };
 
 const resize = () => {
@@ -742,6 +797,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initialize();
   resize();
 
+  addEventListener("keydown", keyDown);
   addEventListener("resize", resize);
 
   const frameRate = new FrameRate(60);

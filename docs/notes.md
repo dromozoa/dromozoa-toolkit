@@ -14,5 +14,9 @@
 - [x] Unicodeのつくりなおし
 - [x] @dromozoa.comのメール
   - honoka,nozomi経由で@me.comに転送
-- [ ] VimのJavaScriptシンタックスの修正
+- [x] VimのJavaScriptシンタックスの修正
   - 引数の先頭の正規表現に色がつかない
+  - javaScriptParensが邪魔してる
+- [ ] カレンダーの更新
+- [ ] Lua 5.4の新しいのをチェックする
+- [x] 選択領域の制約条件
