@@ -23,10 +23,6 @@ const requestAnimationFrame = () => new Promise(resolve => {
   return globalThis.requestAnimationFrame(resolve);
 });
 
-const setTimeout = (delay, ...params) => new Promise(resolve => {
-  return globalThis.setTimeout(resolve, delay, ...params);
-});
-
 const numberToCssRegex = /\.?0*$/;
 const numberToCss = (v, unit = "px") => {
   if (Math.abs(v) < 0.00005) {
@@ -41,10 +37,6 @@ const numberToCss = (v, unit = "px") => {
 const Tuple2 = class {
   constructor(...params) {
     this.set(...params);
-  }
-
-  clone() {
-    return new Tuple2(this);
   }
 
   set(A, y) {
@@ -81,10 +73,74 @@ const Tuple2 = class {
     }
     return this.set(s * A.x, s * A.y);
   }
+
+  absolute(A) {
+    if (A === undefined) {
+      A = this;
+    }
+    return this.set(Math.abs(A.x), Math.abs(A.y));
+  }
+
+  round(A) {
+    if (A === undefined) {
+      A = this;
+    }
+    return this.set(Math.round(A.x), Math.round(A.y));
+  }
+
+  clamp(min, max, A) {
+    if (A === undefined) {
+      A = this;
+    }
+    let { x, y } = A;
+    if (typeof min === "number") {
+      x = Math.max(x, min);
+      y = Math.max(y, min);
+    } else {
+      x = Math.max(x, min.x);
+      y = Math.max(y, min.y);
+    }
+    if (typeof max === "number") {
+      x = Math.min(x, max);
+      y = Math.min(y, max);
+    } else {
+      x = Math.min(x, max.x);
+      y = Math.min(y, max.y);
+    }
+    return this.set(x, y);
+  }
 };
 
-const Point2 = class extends Tuple2 {};
-const Vector2 = class extends Tuple2 {};
+const Point2 = class extends Tuple2 {
+  get z() {
+    return 1;
+  }
+
+  clone() {
+    return new Point2(this);
+  }
+
+  distanceSquared(A) {
+    const x = A.x - this.x;
+    const y = A.y - this.y;
+    return x * x + y * y;
+  }
+};
+
+const Vector2 = class extends Tuple2 {
+  get z() {
+    return 0;
+  }
+
+  clone() {
+    return new Vector2(this);
+  }
+
+  lengthSquared() {
+    const { x, y } = this;
+    return x * x + y * y;
+  }
+};
 
 //-------------------------------------------------------------------------
 
@@ -163,8 +219,7 @@ const Matrix3 = class {
     if (B === undefined) {
       B = A;
     }
-    const { x, y } = A;
-    const z = A instanceof Point2 ? 1 : 0;
+    const { x, y, z } = A;
     return B.set(
       this.m11 * x + this.m12 * y + this.m13 * z,
       this.m21 * x + this.m22 * y + this.m23 * z,
@@ -190,6 +245,10 @@ const blobToImage = blob => new Promise((resolve, reject) => {
   image.src = url;
 });
 
+const canvasToBlob = (canvas, ...params) => new Promise(resolve => {
+  return canvas.toBlob(resolve, ...params);
+});
+
 const CanvasObject = class {
   constructor() {
     this.canvas = undefined;
@@ -201,6 +260,11 @@ const CanvasObject = class {
     this.imageSize = new Vector2();
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
+    this.rubberBandStyle = undefined;
+    this.rubberBandStart = undefined;
+    this.rubberBand = [ new Point2(), new Vector2() ];
+    this.modifier = undefined;
+    this.modifierStart = undefined;
   }
 
   initialize() {
@@ -211,14 +275,6 @@ const CanvasObject = class {
     this.canvas.addEventListener("wheel", ev => this.wheel(ev));
   }
 
-  setTool(tool) {
-    this.tool = tool;
-  }
-
-  setImageFillStyle(imageFillStyle) {
-    this.imageFillStyle = imageFillStyle;
-  }
-
   resize(width, height) {
     this.canvas.width = width * devicePixelRatio;
     this.canvas.height = height * devicePixelRatio;
@@ -227,34 +283,210 @@ const CanvasObject = class {
     this.canvasSize.set(width, height);
   }
 
+  setTool(tool) {
+    this.tool = tool;
+  }
+
+  setImageFillStyle(imageFillStyle) {
+    this.imageFillStyle = imageFillStyle;
+  }
+
   setImage(imageName, image) {
     this.imageName = imageName;
     this.image = image;
     this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
 
     const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
-    const u = new Vector2().scale(0.5, this.canvasSize);
-    const v = new Vector2().scale(0.5 * s, this.imageSize);
+    const u = this.canvasSize.clone().scale(0.5);
+    const v = this.imageSize.clone().scale(0.5 * s);
     u.sub(v);
     this.transform.set(s, 0, u.x, 0, s, u.y, 0, 0, 1);
+
+    guiObject.imageName = canvasObject.imageName;
+    guiObject.imageWidth = canvasObject.imageSize.x;
+    guiObject.imageHeight = canvasObject.imageSize.y;
+    updateGui();
+  }
+
+  setRubberBandStyle(rubberBandStyle) {
+    this.rubberBandStyle = rubberBandStyle;
+  }
+
+  setRubberBand() {
+    this.rubberBand[0].set(guiObject.rubberBandX, guiObject.rubberBandY);
+    this.rubberBand[1].set(guiObject.rubberBandWidth, guiObject.rubberBandHeight);
+  }
+
+  updateGuiRubberBand() {
+    guiObject.rubberBandX = this.rubberBand[0].x;
+    guiObject.rubberBandY = this.rubberBand[0].y;
+    guiObject.rubberBandWidth = this.rubberBand[1].x;
+    guiObject.rubberBandHeight = this.rubberBand[1].y;
+    updateGui();
+  }
+
+  getModifier(ev) {
+    const R = 8 / this.transform.m11;
+    const R2 = R * R;
+
+    const [ p, s ] = this.rubberBand;
+    if (s.lengthSquared() > 0) {
+      const A = this.transform.clone().invert();
+      const u = new Point2(ev.offsetX, ev.offsetY);
+      A.transform(u);
+
+      const q = p.clone().add(s);
+      const c = p.clone().add(q).scale(0.5);
+
+      if (c.distanceSquared(u) <= R2) {
+        return { modifier: "move", cursor: "move" };
+      }
+      if (p.distanceSquared(u) <= R2) {
+        return { modifier: "topLeft", cursor: "nwse-resize" };
+      }
+      if (new Point2(q.x, p.y).distanceSquared(u) <= R2) {
+        return { modifier: "topRight", cursor: "nesw-resize" };
+      }
+      if (new Point2(q.x, q.y).distanceSquared(u) <= R2) {
+        return { modifier: "bottomRight", cursor: "nwse-resize" };
+      }
+      if (new Point2(p.x, q.y).distanceSquared(u) <= R2) {
+        return { modifier: "bottomLeft", cursor: "nesw-resize" };
+      }
+      if (p.x <= u.x && u.x <= q.x) {
+        if (Math.abs(u.y - p.y) <= R) {
+          return { modifier: "top", cursor: "ns-resize" };
+        }
+        if (Math.abs(u.y - q.y) <= R) {
+          return { modifier: "bottom", cursor: "ns-resize" };
+        }
+      }
+      if (p.y <= u.y && u.y <= q.y) {
+        if (Math.abs(u.x - p.x) <= R) {
+          return { modifier: "left", cursor: "ew-resize" };
+        }
+        if (Math.abs(u.x - q.x) <= R) {
+          return { modifier: "right", cursor: "ew-resize" };
+        }
+      }
+    }
+    return { modifier: undefined, cursor: "default" };
   }
 
   mouseDown(ev) {
-    this.mouse = new Point2(ev.offsetX, ev.offsetY);
+    if (this.tool === "normal") {
+      this.mouse = new Point2(ev.offsetX, ev.offsetY);
+    } else if (this.tool === "select") {
+      const A = this.transform.clone().invert();
+      const u = new Point2(ev.offsetX, ev.offsetY);
+      A.transform(u).round().clamp(0, this.imageSize);
+      this.rubberBandStart = u;
+      this.rubberBand[0].set(0, 0);
+      this.rubberBand[1].set(0, 0);
+      this.updateGuiRubberBand();
+    } else if (this.tool === "modify") {
+      const modifier = this.getModifier(ev);
+      this.modifier = modifier.modifier;
+      if (this.modifier) {
+        const A = this.transform.clone().invert();
+        const u = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(u).round().clamp(0, this.imageSize);
+        this.modifierStart = [ u, ...this.rubberBand.map(v => v.clone()) ];
+      }
+      this.canvas.style.cursor = modifier.cursor;
+    }
   }
 
   mouseMove(ev) {
-    if (this.mouse) {
-      const { offsetX: x, offsetY: y } = ev;
-      const u = new Vector2(x, y).sub(this.mouse);
-      this.transform.m13 += u.x;
-      this.transform.m23 += u.y;
-      this.mouse.set(x, y);
+    if (this.tool === "normal") {
+      if (this.mouse) {
+        const { offsetX: x, offsetY: y } = ev;
+        const u = new Vector2(x, y).sub(this.mouse);
+        this.transform.m13 += u.x;
+        this.transform.m23 += u.y;
+        this.mouse.set(x, y);
+      }
+    } else if (this.tool === "select") {
+      if (this.rubberBandStart) {
+        const u = this.rubberBandStart;
+        const A = this.transform.clone().invert();
+        const v = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(v).round().clamp(0, this.imageSize);
+        this.rubberBand[0].set(Math.min(u.x, v.x), Math.min(u.y, v.y));
+        this.rubberBand[1].sub(v, u).absolute();
+        this.updateGuiRubberBand();
+      }
+    } else if (this.tool === "modify") {
+      if (this.modifier) {
+        const [ p, q, s ] = this.modifierStart;
+        const A = this.transform.clone().invert();
+        const u = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(u).round();
+        u.sub(p);
+
+        const [ P, S ] = this.rubberBand;
+        if (this.modifier === "move") {
+          P.add(q, u);
+          S.set(s);
+        } else if (this.modifier === "topLeft") {
+          P.add(q, u);
+          S.sub(s, u);
+        } else if (this.modifier === "topRight") {
+          P.add(q, new Vector2(0, u.y));
+          S.add(s, new Vector2(u.x, -u.y));
+        } else if (this.modifier === "bottomRight") {
+          P.set(q);
+          S.add(s, u);
+        } else if (this.modifier === "bottomLeft") {
+          P.add(q, new Vector2(u.x, 0));
+          S.add(s, new Vector2(-u.x, u.y));
+        } else if (this.modifier === "top") {
+          const d = new Vector2(0, u.y);
+          P.add(q, d);
+          S.sub(s, d);
+        } else if (this.modifier === "bottom") {
+          P.set(q);
+          S.add(s, new Vector2(0, u.y));
+        } else if (this.modifier === "left") {
+          const d = new Vector2(u.x, 0);
+          P.add(q, d);
+          S.sub(s, d);
+        } else if (this.modifier === "right") {
+          P.set(q);
+          S.add(s, new Vector2(u.x, 0));
+        }
+
+        if (S.y < 0) {
+          P.y += S.y;
+        }
+        if (S.x < 0) {
+          P.x += S.x;
+        }
+        S.absolute();
+
+        this.updateGuiRubberBand();
+      } else {
+        this.canvas.style.cursor = this.getModifier(ev).cursor;
+      }
     }
   }
 
   mouseUp(ev) {
+    if (this.tool === "modify") {
+      const [ p, s ] = this.rubberBand;
+
+      const q = p.clone().add(s);
+      p.clamp(0, this.imageSize);
+      q.clamp(0, this.imageSize);
+      s.sub(q, p);
+      this.updateGuiRubberBand();
+    }
+
     this.mouse = undefined;
+    this.rubberBandStart = undefined;
+    this.modifier = undefined;
+    this.modifierStart = undefined;
+    this.canvas.style.cursor = "default";
   }
 
   wheel(ev) {
@@ -270,6 +502,7 @@ const CanvasObject = class {
 
   draw() {
     const context = this.canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
     context.resetTransform();
     context.scale(devicePixelRatio, devicePixelRatio);
     context.clearRect(0, 0, this.canvasSize.x, this.canvasSize.y);
@@ -285,6 +518,54 @@ const CanvasObject = class {
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
       context.drawImage(this.image, 0, 0);
     }
+
+    const [ p, s ] = this.rubberBand;
+    if (s.lengthSquared() > 0) {
+      context.lineWidth = 1 / m11;
+      context.strokeStyle = this.rubberBandStyle;
+
+      context.beginPath();
+      context.rect(p.x, p.y, s.x, s.y);
+      context.moveTo(p.x, p.y);
+      context.lineTo(p.x + s.x, p.y + s.y);
+      context.moveTo(p.x, p.y + s.y);
+      context.lineTo(p.x + s.x, p.y);
+      context.stroke();
+    }
+  }
+
+  createImageDataUrl(mode) {
+    const [ p, s ] = this.rubberBand;
+    const canvasSize = mode === "selection" ? s : this.imageSize;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize.x;
+    canvas.height = canvasSize.y;
+
+    const context = canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
+    context.resetTransform();
+    context.clearRect(0, 0, canvasSize.x, canvasSize.y);
+
+    if (mode === "selection") {
+      context.drawImage(this.image, -p.x, -p.y);
+    } else if (mode === "inside") {
+      context.save();
+      context.beginPath();
+      context.rect(p.x, p.y, s.x, s.y);
+      context.clip();
+      context.drawImage(this.image, 0, 0);
+      context.restore();
+    } else if (mode === "outside") {
+      context.drawImage(this.image, 0, 0);
+      context.clearRect(p.x, p.y, s.x, s.y);
+    } else if (mode === "rectangle") {
+      context.fillStyle = this.imageFillStyle;
+      context.fillRect(p.x, p.y, s.x, s.y);
+    }
+
+    const basename = this.imageName.replace(/\.[^.]*$/, "");
+    return [ `${basename}-${p.x}-${p.y}-${s.x}-${s.y}-${mode}.png`, canvas.toDataURL() ];
   }
 };
 
@@ -340,17 +621,23 @@ const canvasObject = new CanvasObject();
 const toolLabels = {
   "通常": "normal",
   "選択": "select",
+  "変形": "modify",
 };
 
 const guiObject = {
+  tool: "normal",
   fps: 0,
   fpsMin: 0,
   fpsMax: 0,
-  tool: "normal",
   imageFillStyle: "#999999",
   imageName: "",
   imageWidth: 0,
   imageHeight: 0,
+  rubberBandStyle: "#FF0000",
+  rubberBandX: 0,
+  rubberBandY: 0,
+  rubberBandWidth: 0,
+  rubberBandHeight: 0,
 };
 
 let gui;
@@ -359,6 +646,14 @@ let gui;
 
 const updateGui = () => {
   gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+};
+
+const saveImage = mode => {
+  const [ name, url ] = canvasObject.createImageDataUrl(mode);
+  const node = document.createElement("a");
+  node.setAttribute("href", url);
+  node.setAttribute("download", name);
+  node.dispatchEvent(new MouseEvent("click"));
 };
 
 const initialize = () => {
@@ -371,10 +666,6 @@ const initialize = () => {
         const file = ev.dataTransfer.files.item(i);
         try {
           canvasObject.setImage(file.name, await blobToImage(file));
-          guiObject.imageName = canvasObject.imageName;
-          guiObject.imageWidth = canvasObject.imageSize.x;
-          guiObject.imageHeight = canvasObject.imageSize.y;
-          updateGui();
         } catch (e) {
           console.error("cannot read " + file.name, e);
         }
@@ -390,17 +681,50 @@ const initialize = () => {
     container: document.querySelector(".dtk-gui"),
   });
 
-  gui.add(guiObject, "fps").name("最新FPS");
-  gui.add(guiObject, "fpsMin").name("最小FPS");
-  gui.add(guiObject, "fpsMax").name("最大FPS");
   gui.add(guiObject, "tool", toolLabels).name("ツール").onChange(v => canvasObject.setTool(v));
-  gui.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
-  gui.add(guiObject, "imageName").name("画像ファイル名");
-  gui.add(guiObject, "imageWidth").name("画像幅 [px]");
-  gui.add(guiObject, "imageHeight").name("画像高さ [px]");
+
+  {
+    const folder = gui.addFolder("FPS");
+    folder.add(guiObject, "fps").name("最新FPS");
+    folder.add(guiObject, "fpsMin").name("最小FPS");
+    folder.add(guiObject, "fpsMax").name("最大FPS");
+  }
+
+  {
+    const folder = gui.addFolder("画像");
+    folder.addColor(guiObject, "imageFillStyle").name("画像背景色").onChange(v => canvasObject.setImageFillStyle(v));
+    folder.add(guiObject, "imageName").name("画像ファイル名");
+    folder.add(guiObject, "imageWidth").name("画像幅");
+    folder.add(guiObject, "imageHeight").name("画像高さ");
+  }
+
+  {
+    const folder = gui.addFolder("矩形選択");
+    folder.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
+    folder.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+  }
+
+  const commands = {
+    saveImageSelection: () => saveImage("selection"),
+    saveImageInside: () => saveImage("inside"),
+    saveImageOutside: () => saveImage("outside"),
+    saveImageRectangle: () => saveImage("rectangle"),
+  };
+
+  {
+    const folder = gui.addFolder("画像保存");
+    folder.add(commands, "saveImageSelection").name("矩形領域だけを保存");
+    folder.add(commands, "saveImageInside").name("矩形領域の内側を保存");
+    folder.add(commands, "saveImageOutside").name("矩形領域の外側を保存");
+    folder.add(commands, "saveImageRectangle").name("矩形領域を単色で保存");
+  }
 
   canvasObject.setTool(guiObject.tool);
   canvasObject.setImageFillStyle(guiObject.imageFillStyle);
+  canvasObject.setRubberBandStyle(guiObject.rubberBandStyle);
 };
 
 const resize = () => {
