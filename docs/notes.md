@@ -10,6 +10,29 @@
   - javaScriptParensが邪魔してる
 - [x] カレンダーの更新
 - [x] 選択領域の制約条件
+- [x] dotfilesのテキスト折り返しを復活させる
+- [x] dotfilesのなかにvimのnetrwhistができちゃう
+- [x] Twitterのダウンロード
+  - これはアプリカードの実験のことかな？
+  - タスクをむこうに移動。
+- [x] copyrightの一括更新
+  - URLをhttpsにする
+  - 空白ふたつをひとつにする
+- [x] check-copyrightの自動修正
+
+- [ ] 画像加工・変換
+  - ImageMagick
+  - ffmpeg
+  - 自前でやる
+- [ ] 画像最適化
+  - PNG
+    - optipng
+    - zopli
+  - JPEG
+    - mozjpeg
+    - guetzli
+  - WebP
+  - AVIF
 
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
@@ -17,15 +40,8 @@
 - [ ] VOICEPEAKのコマンドライン呼び出し
 - [ ] VOICEPEAKのリップシンク
 - [ ] iPhoneの簡易VR
-- [ ] 画像最適化
 - [ ] フォントの作成
 - [ ] フォントの解析
 - [ ] Lua 5.4の新しいのをチェックする
-- [x] dotfilesのテキスト折り返しを復活させる
-- [x] dotfilesのなかにvimのnetrwhistができちゃう
-- [ ] Twitterのダウンロード
-  - これはアプリカードの実験のことかな？
-- [ ] copyrightの一括更新
-  - URLをhttpsにする
-  - 空白ふたつをひとつにする
-- [ ] check-copyrightの自動修正
+- [ ] dromozoa-calendarのpagesを更新する
+- [ ] dromozoa/vaporoidのアイコンをつくる
