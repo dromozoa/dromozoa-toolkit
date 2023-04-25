@@ -23,3 +23,8 @@
 - [ ] Lua 5.4の新しいのをチェックする
 - [ ] dotfilesのテキスト折り返しを復活させる
 - [ ] dotfilesのなかにvimのnetrwhistができちゃう
+- [ ] Twitterのダウンロード
+- [ ] copyrightの一括更新
+  - URLをhttpsにする
+  - 空白ふたつをひとつにする
+- [ ] check-copyrightの自動修正
