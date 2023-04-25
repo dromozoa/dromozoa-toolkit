@@ -259,6 +259,8 @@ const CanvasObject = class {
     this.rubberBandStyle = undefined;
     this.rubberBandStart = undefined;
     this.rubberBand = [ new Point2(), new Vector2() ];
+    this.modifier = undefined;
+    this.modifierStart = undefined;
   }
 
   initialize() {
@@ -379,6 +381,15 @@ const CanvasObject = class {
       this.rubberBand[1].set(0, 0);
       this.updateGuiRubberBand();
     } else if (this.tool === "modify") {
+      const modifier = this.getModifier(ev);
+      this.modifier = modifier.modifier;
+      if (this.modifier) {
+        const A = this.transform.clone().invert();
+        const u = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(u).round().clamp(0, this.imageSize);
+        this.modifierStart = [ u, ...this.rubberBand.map(v => v.clone()) ];
+      }
+      this.canvas.style.cursor = modifier.cursor;
     }
   }
 
@@ -402,13 +413,76 @@ const CanvasObject = class {
         this.updateGuiRubberBand();
       }
     } else if (this.tool === "modify") {
-      this.canvas.style.cursor = this.getModifier(ev).cursor;
+      if (this.modifier) {
+        const [ p, q, s ] = this.modifierStart;
+        const A = this.transform.clone().invert();
+        const u = new Point2(ev.offsetX, ev.offsetY);
+        A.transform(u).round();
+        u.sub(p);
+
+        const [ P, S ] = this.rubberBand;
+        if (this.modifier === "move") {
+          P.add(q, u);
+          S.set(s);
+        } else if (this.modifier === "topLeft") {
+          P.add(q, u);
+          S.sub(s, u);
+        } else if (this.modifier === "topRight") {
+          P.add(q, new Vector2(0, u.y));
+          S.add(s, new Vector2(u.x, -u.y));
+        } else if (this.modifier === "bottomRight") {
+          P.set(q);
+          S.add(s, u);
+        } else if (this.modifier === "bottomLeft") {
+          P.add(q, new Vector2(u.x, 0));
+          S.add(s, new Vector2(-u.x, u.y));
+        } else if (this.modifier === "top") {
+          const d = new Vector2(0, u.y);
+          P.add(q, d);
+          S.sub(s, d);
+        } else if (this.modifier === "bottom") {
+          P.set(q);
+          S.add(s, new Vector2(0, u.y));
+        } else if (this.modifier === "left") {
+          const d = new Vector2(u.x, 0);
+          P.add(q, d);
+          S.sub(s, d);
+        } else if (this.modifier === "right") {
+          P.set(q);
+          S.add(s, new Vector2(u.x, 0));
+        }
+
+        if (S.y < 0) {
+          P.y += S.y;
+        }
+        if (S.x < 0) {
+          P.x += S.x;
+        }
+        S.absolute();
+
+        this.updateGuiRubberBand();
+      } else {
+        this.canvas.style.cursor = this.getModifier(ev).cursor;
+      }
     }
   }
 
   mouseUp(ev) {
+    if (this.tool === "modify") {
+      const [ p, s ] = this.rubberBand;
+
+      const q = p.clone().add(s);
+      p.clamp(0, this.imageSize);
+      q.clamp(0, this.imageSize);
+      s.sub(q, p);
+      this.updateGuiRubberBand();
+    }
+
     this.mouse = undefined;
     this.rubberBandStart = undefined;
+    this.modifier = undefined;
+    this.modifierStart = undefined;
+    this.canvas.style.cursor = "default";
   }
 
   wheel(ev) {
