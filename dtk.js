@@ -722,12 +722,12 @@ const initialize = () => {
   }
 
   {
-    const folder = gui.addFolder("矩形選択");
-    folder.addColor(guiObject, "rubberBandStyle").name("矩形選択色").onChange(v => canvasObject.setRubberBandStyle(v));
-    folder.add(guiObject, "rubberBandX").name("矩形選択位置X").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandY").name("矩形選択位置Y").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandWidth").name("矩形選択幅").onChange(v => canvasObject.setRubberBand());
-    folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
+    const folder = gui.addFolder("選択");
+    folder.addColor(guiObject, "rubberBandStyle").name("選択色").onChange(v => canvasObject.setRubberBandStyle(v));
+    folder.add(guiObject, "rubberBandX").name("矩形領域位置X").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandY").name("矩形領域位置Y").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandWidth").name("矩形領域の幅").onChange(v => canvasObject.setRubberBand());
+    folder.add(guiObject, "rubberBandHeight").name("矩形領域の高さ").onChange(v => canvasObject.setRubberBand());
     folder.add(guiObject, "aspectConstraint").name("縦横比固定");
     folder.add(guiObject, "aspectWidth").name("縦横比の幅");
     folder.add(guiObject, "aspectHeight").name("縦横比の高さ");
