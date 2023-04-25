@@ -258,7 +258,6 @@ const CanvasObject = class {
     this.imageName = undefined;
     this.image = undefined;
     this.imageSize = new Vector2();
-    this.imageCanvas = undefined;
     this.transform = new Matrix3().setIdentity();
     this.mouse = undefined;
     this.rubberBandStyle = undefined;
@@ -296,7 +295,6 @@ const CanvasObject = class {
     this.imageName = imageName;
     this.image = image;
     this.imageSize.set(this.image.naturalWidth, this.image.naturalHeight, 0);
-    this.imageCanvas = undefined;
 
     const s = Math.min(this.canvasSize.x / this.imageSize.x, this.canvasSize.y / this.imageSize.y, 1);
     const u = this.canvasSize.clone().scale(0.5);
@@ -504,6 +502,7 @@ const CanvasObject = class {
 
   draw() {
     const context = this.canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
     context.resetTransform();
     context.scale(devicePixelRatio, devicePixelRatio);
     context.clearRect(0, 0, this.canvasSize.x, this.canvasSize.y);
@@ -517,7 +516,6 @@ const CanvasObject = class {
     if (this.image) {
       context.fillStyle = this.imageFillStyle;
       context.fillRect(0, 0, this.imageSize.x, this.imageSize.y);
-      context.imageSmoothingEnabled = false;
       context.drawImage(this.image, 0, 0);
     }
 
@@ -536,36 +534,38 @@ const CanvasObject = class {
     }
   }
 
-  getImageCanvas() {
-    if (this.imageCanvas === undefined) {
-      if (this.image) {
-        this.imageCanvas = document.createElement("canvas");
-        this.imageCanvas.width = this.imageSize.x;
-        this.imageCanvas.height = this.imageSize.y;
-      }
-    }
-    return this.imageCanvas;
-  }
-
-
-  drawImageCanvas() {
-    const canvas = this.getImageCanvas();
-    const context = canvas.getContext("2d");
-    context.resetTransform();
-    context.clearRect(0, 0, this.imageSize.x, this.imageSize.y);
-
+  createImageDataUrl(mode) {
     const [ p, s ] = this.rubberBand;
-    if (s.lengthSquared() > 0) {
+    const canvasSize = mode === "selection" ? s : this.imageSize;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize.x;
+    canvas.height = canvasSize.y;
+
+    const context = canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
+    context.resetTransform();
+    context.clearRect(0, 0, canvasSize.x, canvasSize.y);
+
+    if (mode === "selection") {
+      context.drawImage(this.image, -p.x, -p.y);
+    } else if (mode === "inside") {
       context.save();
       context.beginPath();
       context.rect(p.x, p.y, s.x, s.y);
       context.clip();
-      context.imageSmoothingEnabled = false;
       context.drawImage(this.image, 0, 0);
       context.restore();
+    } else if (mode === "outside") {
+      context.drawImage(this.image, 0, 0);
+      context.clearRect(p.x, p.y, s.x, s.y);
+    } else if (mode === "rectangle") {
+      context.fillStyle = this.imageFillStyle;
+      context.fillRect(p.x, p.y, s.x, s.y);
     }
 
-    return canvas;
+    const basename = this.imageName.replace(/\.[^.]*$/, "");
+    return [ `${basename}-${p.x}-${p.y}-${s.x}-${s.y}-${mode}.png`, canvas.toDataURL() ];
   }
 };
 
@@ -648,6 +648,14 @@ const updateGui = () => {
   gui.controllersRecursive().forEach(controller => controller.updateDisplay());
 };
 
+const saveImage = mode => {
+  const [ name, url ] = canvasObject.createImageDataUrl(mode);
+  const node = document.createElement("a");
+  node.setAttribute("href", url);
+  node.setAttribute("download", name);
+  node.dispatchEvent(new MouseEvent("click"));
+};
+
 const initialize = () => {
   const rootNode = document.querySelector(".dtk-root");
   rootNode.addEventListener("dragover", ev => ev.preventDefault());
@@ -699,20 +707,19 @@ const initialize = () => {
     folder.add(guiObject, "rubberBandHeight").name("矩形選択高さ").onChange(v => canvasObject.setRubberBand());
   }
 
-  const commands = {};
-  commands.saveSelection = async () => {
-    const blob = await canvasToBlob(canvasObject.drawImageCanvas());
-    const url = URL.createObjectURL(blob);
-    const node = document.createElement("a");
-    node.setAttribute("href", url);
-    node.setAttribute("download", "テスト.png");
-    node.dispatchEvent(new MouseEvent("click"));
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  const commands = {
+    saveImageSelection: () => saveImage("selection"),
+    saveImageInside: () => saveImage("inside"),
+    saveImageOutside: () => saveImage("outside"),
+    saveImageRectangle: () => saveImage("rectangle"),
   };
 
   {
-    const folder = gui.addFolder("入出力");
-    folder.add(commands, "saveSelection");
+    const folder = gui.addFolder("画像保存");
+    folder.add(commands, "saveImageSelection").name("矩形領域だけを保存");
+    folder.add(commands, "saveImageInside").name("矩形領域の内側を保存");
+    folder.add(commands, "saveImageOutside").name("矩形領域の外側を保存");
+    folder.add(commands, "saveImageRectangle").name("矩形領域を単色で保存");
   }
 
   canvasObject.setTool(guiObject.tool);
