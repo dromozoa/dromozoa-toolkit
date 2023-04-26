@@ -22,14 +22,16 @@
   - ffmpeg
   - 自前でやる
 - [ ] 画像最適化
-  - PNG
+  - [x] PNG
     - optipng
     - zopfli
     - [advancecomp](https://www.advancemame.it/)
-  - JPEG
+      - ImageMagickで十分な気もする
+  - [x] JPEG
     - [mozjpeg](https://github.com/mozilla/mozjpeg)
     - [guetzli](https://github.com/google/guetzli)
   - WebP
+    - [libwebp](https://chromium.googlesource.com/webm/libwebp)
   - AVIF
 
 - [ ] HTMLの解析器
