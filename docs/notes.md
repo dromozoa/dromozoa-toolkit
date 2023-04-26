@@ -24,10 +24,11 @@
 - [ ] 画像最適化
   - PNG
     - optipng
-    - zopli
+    - zopfli
+    - [advancecomp](https://www.advancemame.it/)
   - JPEG
-    - mozjpeg
-    - guetzli
+    - [mozjpeg](https://github.com/mozilla/mozjpeg)
+    - [guetzli](https://github.com/google/guetzli)
   - WebP
   - AVIF
 
