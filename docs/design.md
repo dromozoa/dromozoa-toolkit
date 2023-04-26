@@ -16,6 +16,7 @@
 ## 画像最適化
 
 - PNGはImageMagickでじゅうぶん
+  - `-quality 90 -strip`
 - JPEGは最終段でmozjpegで出力
 
 ### advancecompの実験
