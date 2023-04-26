@@ -2,21 +2,55 @@
   - dromozoa-utf8をインストール
   - Vimで選択して、選択結果に`!dromozoa-markdown-table`する
 - [x] 画像の選択だけを行うツール
-- [ ] HTMLの解析器
-- [ ] グラフによる依存の解決
-  - makeよりすこしかしこいくらい
-- [ ] VOICEPEAKのコマンドライン呼び出し
-- [ ] VOICEPEAKのリップシンク
-- [ ] iPhoneの簡易VR
-- [ ] 画像最適化
-- [ ] フォントの作成
-- [ ] フォントの解析
 - [x] Unicodeのつくりなおし
 - [x] @dromozoa.comのメール
   - honoka,nozomi経由で@me.comに転送
 - [x] VimのJavaScriptシンタックスの修正
   - 引数の先頭の正規表現に色がつかない
   - javaScriptParensが邪魔してる
-- [ ] カレンダーの更新
-- [ ] Lua 5.4の新しいのをチェックする
+- [x] カレンダーの更新
 - [x] 選択領域の制約条件
+- [x] dotfilesのテキスト折り返しを復活させる
+- [x] dotfilesのなかにvimのnetrwhistができちゃう
+- [x] copyrightの一括更新
+  - URLをhttpsにする
+  - 空白ふたつをひとつにする
+- [x] check-copyrightの自動修正
+- [x] 画像最適化
+  - [x] PNG
+    - optipng
+    - zopfli
+    - [advancecomp](https://www.advancemame.it/)
+      - ImageMagickで十分な気もする
+    - pngfixは？
+      - とくに意味なし
+  - [x] JPEG
+    - [mozjpeg](https://github.com/mozilla/mozjpeg)
+    - [guetzli](https://github.com/google/guetzli)
+  - WebP
+    - [libwebp](https://chromium.googlesource.com/webm/libwebp)
+  - AVIF
+
+- [ ] テキストレイアウト
+- [ ] 文字入れ
+- [ ] 画像加工・変換
+  - 加工中の形式はPNGでよいか
+  - ImageMagick
+  - ffmpeg
+  - 自前でやる
+- [ ] HTMLの解析器
+- [ ] グラフによる依存の解決
+  - makeよりすこしかしこいくらい
+  - gitに依存すれば変更の検出が楽かも
+- [ ] VOICEPEAKのコマンドライン呼び出し
+- [ ] VOICEPEAKのリップシンク
+- [ ] iPhoneの簡易VR
+- [ ] フォントの作成
+- [ ] フォントの解析
+- [ ] Lua 5.4の新しいのをチェックする
+- [ ] dromozoa-calendarのpagesを更新する
+- [ ] dromozoa/vaporoidのアイコンをつくる
+- [ ] Twitterのツイートのダウンロード
+  - アーカイブリクエスト中
+  - 通知が届くらしい
+
