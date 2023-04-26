@@ -31,6 +31,8 @@
     - [libwebp](https://chromium.googlesource.com/webm/libwebp)
   - AVIF
 
+- [ ] テキストレイアウト
+- [ ] 文字入れ
 - [ ] 画像加工・変換
   - 加工中の形式はPNGでよいか
   - ImageMagick
