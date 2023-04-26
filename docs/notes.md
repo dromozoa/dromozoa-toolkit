@@ -18,6 +18,7 @@
 - [x] check-copyrightの自動修正
 
 - [ ] 画像加工・変換
+  - 加工中の形式はPNGでよいか
   - ImageMagick
   - ffmpeg
   - 自前でやる
@@ -27,6 +28,8 @@
     - zopfli
     - [advancecomp](https://www.advancemame.it/)
       - ImageMagickで十分な気もする
+    - pngfixは？
+      - とくに意味なし
   - [x] JPEG
     - [mozjpeg](https://github.com/mozilla/mozjpeg)
     - [guetzli](https://github.com/google/guetzli)

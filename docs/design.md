@@ -20,6 +20,7 @@
 - [advancecomp](https://www.advancemame.it/)
 - 得意なファイルと不得意なファイルがわかれる
 - ImageMagickを通したあとにかけてもよい、くらい。
+- もとの圧縮がわるいときはよくなる
 
 ```
 % advpng -z -4 -i 8 *.png
@@ -51,33 +52,17 @@
 ```
 mkdir build
 cd build
-/Applications/CMake.app/Contents/bin/cmake -G"Unix Makefiles" -DCMAKE_PREFIX_PATH=/opt/dromozoa -DPNG_SUPPORTED=ON ..
+/Applications/CMake.app/Contents/bin/cmake -G"Unix Makefiles" -DCMAKE_PREFIX_PATH=/opt/dromozoa -DPNG_SUPPORTED=ON -DCMAKE_INSTALL_PREFIX=/opt/mozjpeg-4.1.1 ..
 make
+make install
 ```
 
 - 品質85くらいで
 
 ```
-% for i in source/*.*; do j=`basename "$i"`; j=`expr "X$j" : 'X\(.*\)\.[^.]*$'`; ../mozjpeg-4.1.1/build/cjpeg -quality 85 "$i" >"test/$j.jpg"; done
-% du -shc source/*.jpg
-120K	source/bg-landscape-kcode.jpg
-312K	source/bg-landscape.jpg
-128K	source/bg-portrait-kcode.jpg
-296K	source/bg-portrait.jpg
-160K	source/screen-shot1.jpg
-160K	source/screen-shot2.jpg
-160K	source/screen-shot3.jpg
-164K	source/screen-shot4.jpg
-1.5M	total
-% du -shc test/bg-*.jpg test/screen-shot*.jpg
-112K	test/bg-landscape-kcode.jpg
-264K	test/bg-landscape.jpg
-116K	test/bg-portrait-kcode.jpg
-252K	test/bg-portrait.jpg
- 76K	test/screen-shot1.jpg
- 76K	test/screen-shot2.jpg
- 72K	test/screen-shot3.jpg
- 76K	test/screen-shot4.jpg
-1.0M	total
+% for i in source/*.*; do j=`basename "$i"`; j=`expr "X$j" : 'X\(.*\)\.[^.]*$'`; cjpeg -quality 85 "$i" >"test/$j.jpg"; done
+% du -sh source test
+1.5M	source
+1.0M	test
 ```
 
