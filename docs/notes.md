@@ -12,9 +12,6 @@
 - [x] 選択領域の制約条件
 - [x] dotfilesのテキスト折り返しを復活させる
 - [x] dotfilesのなかにvimのnetrwhistができちゃう
-- [x] Twitterのダウンロード
-  - これはアプリカードの実験のことかな？
-  - タスクをむこうに移動。
 - [x] copyrightの一括更新
   - URLをhttpsにする
   - 空白ふたつをひとつにする
@@ -46,3 +43,7 @@
 - [ ] Lua 5.4の新しいのをチェックする
 - [ ] dromozoa-calendarのpagesを更新する
 - [ ] dromozoa/vaporoidのアイコンをつくる
+- [ ] Twitterのツイートのダウンロード
+  - アーカイブリクエスト中
+  - 通知が届くらしい
+
