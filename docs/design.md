@@ -13,7 +13,10 @@
 | Firefox    | #222222 |
 | Inkspace   | #D1D1D1 |
 
-## 画像
+## 画像最適化
+
+- PNGはImageMagickでじゅうぶん
+- JPEGは最終段でmozjpegで出力
 
 ### advancecompの実験
 

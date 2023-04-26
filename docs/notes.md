@@ -16,13 +16,7 @@
   - URLをhttpsにする
   - 空白ふたつをひとつにする
 - [x] check-copyrightの自動修正
-
-- [ ] 画像加工・変換
-  - 加工中の形式はPNGでよいか
-  - ImageMagick
-  - ffmpeg
-  - 自前でやる
-- [ ] 画像最適化
+- [x] 画像最適化
   - [x] PNG
     - optipng
     - zopfli
@@ -37,6 +31,11 @@
     - [libwebp](https://chromium.googlesource.com/webm/libwebp)
   - AVIF
 
+- [ ] 画像加工・変換
+  - 加工中の形式はPNGでよいか
+  - ImageMagick
+  - ffmpeg
+  - 自前でやる
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
   - makeよりすこしかしこいくらい
