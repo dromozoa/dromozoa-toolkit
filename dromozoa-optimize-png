@@ -1,0 +1,28 @@
+#! /bin/sh -e
+
+DYLD_LIBRARY_PATH=$MAGICK_HOME/lib
+export DYLD_LIBRARY_PATH
+
+case X$TMPDIR in
+  X) TMPDIR=/tmp;;
+esac
+tmp=`(umask 077 && mktemp -d "$TMPDIR/dtk-XXXXXX" 2>/dev/null || :)`
+tmp=`(cd "$tmp" && pwd)`
+trap "(cd / && rm -f -r '$tmp')" 0
+
+for i in "$@"
+do
+  name=`basename "$i"`
+  name=`expr "X$name" : 'X\(.*\)\.[^.]*$'`
+  for j in 90 91 92 93 94 95 96 97 98 99
+  do
+    convert "$i" -quality "$j" -strip "$tmp/$name-$j.png"
+  done
+
+  j=`ls -S -r "$i" "$tmp/$name-"*.png | head -1`
+  if test "X$j" != "X$i"
+  then
+    mv -v "$j" "$i"
+  fi
+  rm -f "$tmp/$name-"*.png
+done
