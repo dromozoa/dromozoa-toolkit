@@ -30,14 +30,12 @@
   - WebP
     - [libwebp](https://chromium.googlesource.com/webm/libwebp)
   - AVIF
+- [x] 画像加工・変換
+  - 加工中の形式はPNGでよいか
+  - ImageMagickでやる
 
 - [ ] テキストレイアウト
 - [ ] 文字入れ
-- [ ] 画像加工・変換
-  - 加工中の形式はPNGでよいか
-  - ImageMagick
-  - ffmpeg
-  - 自前でやる
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
   - makeよりすこしかしこいくらい
