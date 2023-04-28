@@ -1,5 +1,11 @@
 # 設計メモ
 
+## git
+
+```
+git config credential.helper osxkeychain
+```
+
 ## 色
 
 - https://developer.apple.com/design/human-interface-guidelines/foundations/color/
