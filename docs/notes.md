@@ -48,10 +48,14 @@
   - 声道モデル
 - [ ] iPhoneの簡易VR
 - [ ] フォントの作成
+- [ ] オプティカルカーニング
 - [ ] フォントの解析
-- [ ] Lua 5.4の新しいのをチェックする
+- [x] Lua 5.4の新しいのをチェックする
 - [ ] dromozoa-calendarのpagesを更新する
 - [ ] dromozoa/vaporoidのアイコンをつくる
-- [ ] dromozoa-bootのcopyright更新
+- [x] dromozoa-bootのcopyright更新
   - Lua 5.4の新しいのにあわせて
+- [ ] WebGPUをやってみる
+- [ ] CMakeをパスにいれる
+
 
