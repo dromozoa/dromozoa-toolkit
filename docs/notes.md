@@ -36,6 +36,10 @@
 - [x] Twitterのツイートのダウンロード
   - アーカイブリクエスト中
   - 通知が届くらしい
+- [x] Lua 5.4の新しいのをチェックする
+- [x] dromozoa-bootのcopyright更新
+  - Lua 5.4の新しいのにあわせて
+- [x] CMakeをパスにいれる
 
 - [ ] テキストレイアウト
 - [ ] 文字入れ
@@ -50,12 +54,7 @@
 - [ ] フォントの作成
 - [ ] オプティカルカーニング
 - [ ] フォントの解析
-- [x] Lua 5.4の新しいのをチェックする
 - [ ] dromozoa-calendarのpagesを更新する
 - [ ] dromozoa/vaporoidのアイコンをつくる
-- [x] dromozoa-bootのcopyright更新
-  - Lua 5.4の新しいのにあわせて
 - [ ] WebGPUをやってみる
-- [ ] CMakeをパスにいれる
-
 
