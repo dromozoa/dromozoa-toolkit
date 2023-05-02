@@ -30,27 +30,31 @@
   - WebP
     - [libwebp](https://chromium.googlesource.com/webm/libwebp)
   - AVIF
+- [x] 画像加工・変換
+  - 加工中の形式はPNGでよいか
+  - ImageMagickでやる
+- [x] Twitterのツイートのダウンロード
+  - アーカイブリクエスト中
+  - 通知が届くらしい
+- [x] Lua 5.4の新しいのをチェックする
+- [x] dromozoa-bootのcopyright更新
+  - Lua 5.4の新しいのにあわせて
+- [x] CMakeをパスにいれる
 
 - [ ] テキストレイアウト
 - [ ] 文字入れ
-- [ ] 画像加工・変換
-  - 加工中の形式はPNGでよいか
-  - ImageMagick
-  - ffmpeg
-  - 自前でやる
 - [ ] HTMLの解析器
 - [ ] グラフによる依存の解決
   - makeよりすこしかしこいくらい
   - gitに依存すれば変更の検出が楽かも
 - [ ] VOICEPEAKのコマンドライン呼び出し
 - [ ] VOICEPEAKのリップシンク
+  - 声道モデル
 - [ ] iPhoneの簡易VR
 - [ ] フォントの作成
+- [ ] オプティカルカーニング
 - [ ] フォントの解析
-- [ ] Lua 5.4の新しいのをチェックする
 - [ ] dromozoa-calendarのpagesを更新する
 - [ ] dromozoa/vaporoidのアイコンをつくる
-- [ ] Twitterのツイートのダウンロード
-  - アーカイブリクエスト中
-  - 通知が届くらしい
+- [ ] WebGPUをやってみる
 
